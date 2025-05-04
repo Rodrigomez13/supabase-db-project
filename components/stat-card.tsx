@@ -1,65 +1,42 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 
 interface StatCardProps {
   title: string;
   value: string | number;
   trend?: "up" | "down" | "neutral";
-  prefix?: string;
-  suffix?: string;
-  description?: string;
-  trendValue?: string;
+  subtitle?: string;
 }
 
 export function StatCard({
   title,
   value,
   trend = "neutral",
-  prefix = "",
-  suffix = "",
-  description,
-  trendValue,
+  subtitle,
 }: StatCardProps) {
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start">
-          <h3 className="text-sm font-medium text-usina-text-secondary">
-            {title}
-          </h3>
+    <Card className="border-usina-card bg-background/5">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-usina-text-primary">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-usina-text-primary">
+          {value}
+        </div>
+        <div className="flex items-center mt-1">
           {trend === "up" && (
-            <ArrowUpIcon className="h-4 w-4 text-usina-success" />
+            <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
           )}
           {trend === "down" && (
-            <ArrowDownIcon className="h-4 w-4 text-usina-danger" />
+            <ArrowDown className="h-4 w-4 text-red-500 mr-1" />
           )}
           {trend === "neutral" && (
-            <MinusIcon className="h-4 w-4 text-usina-text-muted" />
+            <Minus className="h-4 w-4 text-gray-500 mr-1" />
           )}
+          <p className="text-xs text-usina-text-secondary">
+            {subtitle || "Sin cambios"}
+          </p>
         </div>
-        <p className="text-2xl font-bold mt-2 text-usina-text-primary">
-          {prefix}
-          {value}
-          {suffix}
-        </p>
-        {description && (
-          <p className="text-xs text-usina-text-secondary mt-1">
-            {description}
-          </p>
-        )}
-        {trendValue && (
-          <p
-            className={`text-xs mt-1 ${
-              trend === "up"
-                ? "text-usina-success"
-                : trend === "down"
-                ? "text-usina-danger"
-                : "text-usina-text-secondary"
-            }`}
-          >
-            {trendValue}
-          </p>
-        )}
       </CardContent>
     </Card>
   );

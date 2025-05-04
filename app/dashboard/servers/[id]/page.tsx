@@ -4,15 +4,23 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Trash2, BarChart2 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, BarChart2, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   getServerById,
-  getServerMetrics,
+  getDailyServerMetrics,
   getDailyProgressData,
 } from "@/lib/queries/server-queries";
 import { ServerAdsList } from "@/components/server-ads-list";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface Server {
   id: string;
@@ -52,6 +60,10 @@ export default function ServerDetailPage({
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dateString, setDateString] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
 
   useEffect(() => {
     async function loadServerData() {
@@ -66,8 +78,8 @@ export default function ServerDetailPage({
         }
         setServer(serverData);
 
-        // Cargar métricas
-        const metricsData = await getServerMetrics(params.id);
+        // Cargar métricas diarias del servidor
+        const metricsData = await getDailyServerMetrics(params.id, dateString);
         setMetrics(metricsData);
 
         // Cargar datos para gráficos
@@ -82,7 +94,15 @@ export default function ServerDetailPage({
     }
 
     loadServerData();
-  }, [params.id]);
+  }, [params.id, dateString]);
+
+  // Función para manejar el cambio de fecha
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      setDateString(date.toISOString().split("T")[0]);
+    }
+  };
 
   if (loading) {
     return (
@@ -138,6 +158,23 @@ export default function ServerDetailPage({
           </div>
         </div>
         <div className="flex space-x-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {format(selectedDate, "dd/MM/yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateChange}
+                initialFocus
+                locale={es}
+              />
+            </PopoverContent>
+          </Popover>
           <Link href={`/dashboard/servers/${server.id}/daily-records`}>
             <Button variant="outline">
               <BarChart2 className="h-4 w-4 mr-2" />
@@ -166,15 +203,20 @@ export default function ServerDetailPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-usina-card bg-background/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-usina-text-primary">Leads</CardTitle>
+            <CardTitle className="text-usina-text-primary">
+              Leads Generados
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-usina-text-primary">
               {metrics?.leads || 0}
             </div>
+            <p className="text-xs text-usina-text-secondary mt-1">
+              {format(selectedDate, "dd 'de' MMMM, yyyy", { locale: es })}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-usina-card bg-background/5">
@@ -187,6 +229,9 @@ export default function ServerDetailPage({
             <div className="text-3xl font-bold text-usina-text-primary">
               {metrics?.conversions || 0}
             </div>
+            <p className="text-xs text-usina-text-secondary mt-1">
+              {format(selectedDate, "dd 'de' MMMM, yyyy", { locale: es })}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-usina-card bg-background/5">
@@ -197,8 +242,26 @@ export default function ServerDetailPage({
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-usina-text-primary">
-              {metrics?.conversion_rate?.toFixed(2) || 0}%
+              {metrics?.conversion_rate?.toFixed(1) || 0}%
             </div>
+            <p className="text-xs text-usina-text-secondary mt-1">
+              {format(selectedDate, "dd 'de' MMMM, yyyy", { locale: es })}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-usina-card bg-background/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-usina-text-primary">
+              Gasto Total
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-usina-text-primary">
+              ${metrics?.spend?.toFixed(2) || "0.00"}
+            </div>
+            <p className="text-xs text-usina-text-secondary mt-1">
+              {format(selectedDate, "dd 'de' MMMM, yyyy", { locale: es })}
+            </p>
           </CardContent>
         </Card>
       </div>

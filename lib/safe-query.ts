@@ -3,7 +3,7 @@ import { supabase } from "./supabase"
 interface QueryOptions {
   where?: Record<string, any>
   whereIn?: { column: string; values: any[] }
-  orderBy?: { column: string; ascending: boolean }
+  orderBy?: { column: string; ascending?: boolean } // Hacemos ascending opcional
   limit?: number
   offset?: number
   relationships?: string
@@ -20,25 +20,20 @@ interface QueryOptions {
 export async function safeQuery<T>(table: string, options: QueryOptions = {}): Promise<T[]> {
   try {
     // Iniciar la consulta
-    let query = supabase.from(table)
-
-    // Seleccionar campos específicos o todos
-    if (options.select) {
-      query = query.select(options.select)
-    } else {
-      query = query.select("*")
-    }
+    let query = supabase.from(table).select(options.select || "*")
 
     // Agregar relaciones si se especifican
     if (options.relationships) {
-      query = query.select(`*, ${options.relationships}`)
+      query = supabase.from(table).select(`*, ${options.relationships}`)
     }
 
     // Agregar filtros
     if (options.where) {
-      Object.entries(options.where).forEach(([key, value]) => {
-        query = query.eq(key, value)
-      })
+      for (const [key, value] of Object.entries(options.where)) {
+        if (value !== undefined && value !== null) {
+          query = query.eq(key, value)
+        }
+      }
     }
 
     // Agregar filtros IN
@@ -48,9 +43,8 @@ export async function safeQuery<T>(table: string, options: QueryOptions = {}): P
 
     // Agregar ordenamiento
     if (options.orderBy) {
-      query = query.order(options.orderBy.column, {
-        ascending: options.orderBy.ascending,
-      })
+      const { column, ascending = true } = options.orderBy // Valor por defecto para ascending
+      query = query.order(column, { ascending })
     }
 
     // Agregar límite
@@ -64,7 +58,9 @@ export async function safeQuery<T>(table: string, options: QueryOptions = {}): P
     }
 
     // Ejecutar la consulta
-    const { data, error } = options.single ? await query.single() : await query
+    const { data, error } = options.single 
+      ? await query.single() 
+      : await query
 
     if (error) {
       console.error(`Error en consulta a ${table}:`, error)
@@ -84,19 +80,24 @@ export async function safeQuery<T>(table: string, options: QueryOptions = {}): P
  * @param data Datos a insertar
  * @returns Registro insertado
  */
-export async function safeInsert<T>(table: string, data: Record<string, any>): Promise<T> {
+export async function safeInsert<T>(table: string, data: Record<string, any>): Promise<{ success: boolean; data?: T; error?: string }> {
   try {
-    const { data: result, error } = await supabase.from(table).insert(data).select().single()
+    // Filtrar propiedades undefined o null para evitar errores con columnas que no existen
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined && value !== null)
+    )
+
+    const { data: result, error } = await supabase.from(table).insert(cleanData).select().single()
 
     if (error) {
       console.error(`Error al insertar en ${table}:`, error)
-      throw new Error(error.message)
+      return { success: false, error: error.message }
     }
 
-    return result as T
+    return { success: true, data: result as T }
   } catch (error: any) {
     console.error(`Error en safeInsert (${table}):`, error)
-    throw new Error(`Error al insertar en ${table}: ${error.message}`)
+    return { success: false, error: `Error al insertar en ${table}: ${error.message}` }
   }
 }
 
@@ -107,19 +108,19 @@ export async function safeInsert<T>(table: string, data: Record<string, any>): P
  * @param data Datos a actualizar
  * @returns Registro actualizado
  */
-export async function safeUpdate<T>(table: string, id: string, data: Record<string, any>): Promise<T> {
+export async function safeUpdate<T>(table: string, id: string, data: Record<string, any>): Promise<{ success: boolean; data?: T; error?: string }> {
   try {
     const { data: result, error } = await supabase.from(table).update(data).eq("id", id).select().single()
 
     if (error) {
       console.error(`Error al actualizar en ${table}:`, error)
-      throw new Error(error.message)
+      return { success: false, error: error.message }
     }
 
-    return result as T
+    return { success: true, data: result as T }
   } catch (error: any) {
     console.error(`Error en safeUpdate (${table}):`, error)
-    throw new Error(`Error al actualizar en ${table}: ${error.message}`)
+    return { success: false, error: `Error al actualizar en ${table}: ${error.message}` }
   }
 }
 

@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -16,18 +12,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ArrowLeft, Calendar } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 interface DailyRecord {
   id: string;
   date: string;
-  leads: number;
-  conversions: number;
+  total_leads: number;
+  total_conversions: number;
+  total_spent: number;
   conversion_rate: number;
-  fb_spend: number;
-  fb_spend_with_imp: number;
   cost_per_lead: number;
   cost_per_conversion: number;
-  cost_per_conversion_with_imp: number;
+  created_at: string;
 }
 
 interface Server {
@@ -45,96 +50,125 @@ export default function ServerDailyRecordsPage({
   const [records, setRecords] = useState<DailyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Cargar datos del servidor
-        const { data: serverData, error: serverError } = await supabase
-          .from("servers")
-          .select("id, name")
-          .eq("id", params.id)
-          .single();
-
-        if (serverError) throw serverError;
-        setServer(serverData);
-
-        // Cargar registros diarios
-        const { data: recordsData, error: recordsError } = await supabase
-          .from("server_daily_records")
-          .select("*")
-          .eq("server_id", params.id)
-          .order("date", { ascending: false });
-
-        if (recordsError) throw recordsError;
-        setRecords(recordsData || []);
-      } catch (err: any) {
-        console.error("Error loading data:", err);
-        setError(`Error al cargar datos: ${err.message}`);
-      } finally {
-        setLoading(false);
-      }
+    if (params.id) {
+      fetchServerInfo();
+      fetchDailyRecords();
     }
-
-    loadData();
   }, [params.id]);
 
-  async function generateDailyRecord() {
+  async function fetchServerInfo() {
+    try {
+      const { data, error } = await supabase
+        .from("servers")
+        .select("id, name")
+        .eq("id", params.id)
+        .single();
+
+      if (error) throw error;
+      setServer(data);
+    } catch (err: any) {
+      console.error("Error fetching server info:", err);
+      setError(`Error al cargar información del servidor: ${err.message}`);
+    }
+  }
+
+  async function fetchDailyRecords() {
     try {
       setLoading(true);
       setError(null);
 
-      const today = new Date().toISOString().split("T")[0];
-
-      // Llamar a la función para generar el registro diario
-      const { data, error } = await supabase.rpc(
-        "generate_server_daily_record",
-        {
-          server_id_param: params.id,
-          date_param: today,
-        }
-      );
-
-      if (error) throw error;
-
-      // Recargar los registros
-      const { data: recordsData, error: recordsError } = await supabase
+      const { data, error } = await supabase
         .from("server_daily_records")
         .select("*")
         .eq("server_id", params.id)
         .order("date", { ascending: false });
 
-      if (recordsError) throw recordsError;
-      setRecords(recordsData || []);
+      if (error) throw error;
+      setRecords(data || []);
     } catch (err: any) {
-      console.error("Error generating daily record:", err);
-      setError(`Error al generar registro diario: ${err.message}`);
+      console.error("Error fetching daily records:", err);
+      setError(`Error al cargar registros diarios: ${err.message}`);
+      setRecords([]);
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading && !server) {
-    return (
-      <div className="flex justify-center items-center h-64">Cargando...</div>
-    );
+  async function filterByDate(selectedDate: Date | undefined) {
+    if (!selectedDate) return;
+
+    try {
+      setLoading(true);
+      setDate(selectedDate);
+
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
+
+      const { data, error } = await supabase
+        .from("server_daily_records")
+        .select("*")
+        .eq("server_id", params.id)
+        .eq("date", formattedDate)
+        .order("date", { ascending: false });
+
+      if (error) throw error;
+      setRecords(data || []);
+    } catch (err: any) {
+      console.error("Error filtering records:", err);
+      setError(`Error al filtrar registros: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function clearFilter() {
+    setDate(undefined);
+    fetchDailyRecords();
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="icon" onClick={() => router.back()}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => router.push(`/dashboard/servers/${params.id}`)}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-2xl font-bold">
-            Registros Diarios - {server?.name}
-          </h1>
+          <div>
+            <h1 className="text-3xl font-bold text-usina-text-primary">
+              Registros Diarios: {server?.name || "Cargando..."}
+            </h1>
+          </div>
         </div>
-        <Button onClick={generateDailyRecord}>Generar Registro de Hoy</Button>
+        <div className="flex space-x-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {date ? format(date, "dd/MM/yyyy") : "Seleccionar fecha"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <CalendarComponent
+                mode="single"
+                selected={date}
+                onSelect={filterByDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          {date && (
+            <Button variant="outline" onClick={clearFilter}>
+              Mostrar Todos
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -143,63 +177,60 @@ export default function ServerDailyRecordsPage({
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de Registros Diarios</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {records.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No hay registros diarios para este servidor.
+      {loading ? (
+        <div className="text-center py-4 text-usina-text-secondary">
+          Cargando registros diarios...
+        </div>
+      ) : records.length === 0 ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="text-center text-usina-text-secondary">
+              No hay registros diarios para este servidor
+              {date ? ` en la fecha ${format(date, "dd/MM/yyyy")}` : ""}
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Leads</TableHead>
-                    <TableHead>Conv.</TableHead>
-                    <TableHead>% Conv.</TableHead>
-                    <TableHead>Gasto FB</TableHead>
-                    <TableHead>Gasto FB + imp</TableHead>
-                    <TableHead>$ Leads</TableHead>
-                    <TableHead>$ Conv.</TableHead>
-                    <TableHead>$ Conv. + imp</TableHead>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Historial de Registros Diarios</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Leads</TableHead>
+                  <TableHead>Conversiones</TableHead>
+                  <TableHead>Tasa de Conversión</TableHead>
+                  <TableHead>Gasto Total</TableHead>
+                  <TableHead>Costo por Lead</TableHead>
+                  <TableHead>Costo por Conversión</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {records.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell>
+                      {format(new Date(record.date), "dd 'de' MMMM, yyyy", {
+                        locale: es,
+                      })}
+                    </TableCell>
+                    <TableCell>{record.total_leads}</TableCell>
+                    <TableCell>{record.total_conversions}</TableCell>
+                    <TableCell>{record.conversion_rate.toFixed(1)}%</TableCell>
+                    <TableCell>${record.total_spent.toFixed(2)}</TableCell>
+                    <TableCell>${record.cost_per_lead.toFixed(2)}</TableCell>
+                    <TableCell>
+                      ${record.cost_per_conversion.toFixed(2)}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell>
-                        {format(new Date(record.date), "dd MMM yyyy", {
-                          locale: es,
-                        })}
-                      </TableCell>
-                      <TableCell>{record.leads}</TableCell>
-                      <TableCell>{record.conversions}</TableCell>
-                      <TableCell>
-                        {record.conversion_rate.toFixed(2)}%
-                      </TableCell>
-                      <TableCell>${record.fb_spend.toFixed(2)}</TableCell>
-                      <TableCell>
-                        ${record.fb_spend_with_imp.toFixed(2)}
-                      </TableCell>
-                      <TableCell>${record.cost_per_lead.toFixed(2)}</TableCell>
-                      <TableCell>
-                        ${record.cost_per_conversion.toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        ${record.cost_per_conversion_with_imp.toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

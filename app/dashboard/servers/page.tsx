@@ -11,7 +11,7 @@ import {
   type Server,
   type ServerMetrics,
   getServers,
-  getServerMetrics,
+  getDailyServerMetrics,
   getDailyProgressData,
 } from "@/lib/queries/server-queries";
 import { ServerAdsList } from "@/components/server-ads-list";
@@ -63,7 +63,7 @@ export default function ServersPage() {
 
   const fetchServerMetrics = useCallback(async (serverId: string) => {
     try {
-      const metrics = await getServerMetrics(serverId);
+      const metrics = await getDailyServerMetrics(serverId);
       setServerMetrics(metrics);
     } catch (err: any) {
       console.error("Error loading server metrics:", err);
@@ -180,7 +180,6 @@ export default function ServersPage() {
           <StatCard
             title="Gasto Total"
             value={safeNumber(serverMetrics.spend).toFixed(2)}
-            prefix="$"
             trend="up"
           />
         </div>
