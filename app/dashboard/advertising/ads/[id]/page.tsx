@@ -16,75 +16,66 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
-import {
-  getCampaignById,
-  updateCampaign,
-} from "@/lib/queries/campaign-queries";
+import { getAdById, updateAd } from "@/lib/queries/ad-queries";
 import { safeQuery } from "@/lib/safe-query";
 import { StatusBadge } from "@/components/status-badge";
 
-interface BusinessManager {
+interface AdSet {
   id: string;
   name: string;
 }
 
-export default function EditCampaignPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function EditAdPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [businessManagers, setBusinessManagers] = useState<BusinessManager[]>(
-    []
-  );
-  const [campaignId, setCampaignId] = useState<string>("");
+  const [adSets, setAdSets] = useState<AdSet[]>([]);
+  const [adId, setAdId] = useState<string>("");
 
   // Formulario
   const [name, setName] = useState("");
-  const [campaignIdValue, setCampaignIdValue] = useState("");
-  const [objective, setObjective] = useState("");
+  const [adIdValue, setAdIdValue] = useState("");
+  const [creativeType, setCreativeType] = useState("");
   const [status, setStatus] = useState("ACTIVE");
-  const [bmId, setBmId] = useState("");
+  const [adsetId, setAdsetId] = useState("");
 
-  // Extraer el ID de la campaña de params al inicio
+  // Extraer el ID del anuncio de params al inicio
   useEffect(() => {
     if (params.id) {
-      setCampaignId(params.id);
+      setAdId(params.id);
     }
   }, [params.id]);
 
   useEffect(() => {
     async function loadData() {
-      if (!campaignId) return;
+      if (!adId) return;
 
       try {
         setLoading(true);
         setError(null);
 
-        // Cargar datos de la campaña
-        const campaign = await getCampaignById(campaignId);
+        // Cargar datos del anuncio
+        const ad = await getAdById(adId);
 
-        if (!campaign) {
-          throw new Error("Campaña no encontrada");
+        if (!ad) {
+          throw new Error("Anuncio no encontrado");
         }
 
         // Establecer valores del formulario
-        setName(campaign.name);
-        setCampaignIdValue(campaign.campaign_id);
-        setObjective(campaign.objective);
-        setStatus(campaign.status);
-        setBmId(campaign.bm_id);
+        setName(ad.name);
+        setAdIdValue(ad.ad_id);
+        setCreativeType(ad.creative_type);
+        setStatus(ad.status);
+        setAdsetId(ad.adset_id);
 
-        // Cargar business managers
-        const bmData = await safeQuery<BusinessManager>("business_managers", {
+        // Cargar conjuntos de anuncios
+        const adSetsData = await safeQuery<AdSet>("ad_sets", {
           orderBy: { column: "name", ascending: true },
         });
-        setBusinessManagers(bmData);
+        setAdSets(adSetsData);
       } catch (err: any) {
-        console.error("Error loading campaign:", err);
+        console.error("Error loading ad:", err);
         setError(`Error al cargar datos: ${err.message}`);
       } finally {
         setLoading(false);
@@ -92,37 +83,37 @@ export default function EditCampaignPage({
     }
 
     loadData();
-  }, [campaignId]);
+  }, [adId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!campaignId) return;
+    if (!adId) return;
 
     try {
       setSubmitting(true);
       setError(null);
 
       // Validar datos
-      if (!name || !campaignIdValue || !bmId) {
+      if (!name || !adIdValue || !adsetId) {
         throw new Error("Por favor completa todos los campos requeridos");
       }
 
-      // Actualizar campaña
+      // Actualizar anuncio
       const updatedData = {
         name,
-        campaign_id: campaignIdValue,
-        objective,
+        ad_id: adIdValue,
+        creative_type: creativeType,
         status,
-        bm_id: bmId,
+        adset_id: adsetId,
       };
 
-      await updateCampaign(campaignId, updatedData);
+      await updateAd(adId, updatedData);
 
-      // Redirigir a la lista de campañas
-      router.push("/dashboard/advertising/campaigns");
+      // Redirigir a la lista de anuncios
+      router.push("/dashboard/advertising/ads");
     } catch (err: any) {
-      console.error("Error updating campaign:", err);
+      console.error("Error updating ad:", err);
       setError(`Error al actualizar: ${err.message}`);
     } finally {
       setSubmitting(false);
@@ -143,7 +134,7 @@ export default function EditCampaignPage({
         <Button variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Editar Campaña</h1>
+        <h1 className="text-2xl font-bold">Editar Anuncio</h1>
       </div>
 
       {error && (
@@ -155,7 +146,7 @@ export default function EditCampaignPage({
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Información de la Campaña</CardTitle>
+            <CardTitle>Información del Anuncio</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -169,21 +160,21 @@ export default function EditCampaignPage({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="campaign_id">ID de la Campaña</Label>
+              <Label htmlFor="ad_id">ID del Anuncio</Label>
               <Input
-                id="campaign_id"
-                value={campaignIdValue}
-                onChange={(e) => setCampaignIdValue(e.target.value)}
+                id="ad_id"
+                value={adIdValue}
+                onChange={(e) => setAdIdValue(e.target.value)}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="objective">Objetivo</Label>
+              <Label htmlFor="creative_type">Tipo de Creativo</Label>
               <Input
-                id="objective"
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
+                id="creative_type"
+                value={creativeType}
+                onChange={(e) => setCreativeType(e.target.value)}
               />
             </div>
 
@@ -205,15 +196,15 @@ export default function EditCampaignPage({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bm_id">Business Manager</Label>
-              <Select value={bmId} onValueChange={setBmId}>
+              <Label htmlFor="adset">Conjunto de Anuncios</Label>
+              <Select value={adsetId} onValueChange={setAdsetId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un business manager" />
+                  <SelectValue placeholder="Selecciona un conjunto de anuncios" />
                 </SelectTrigger>
                 <SelectContent>
-                  {businessManagers.map((bm) => (
-                    <SelectItem key={bm.id} value={bm.id}>
-                      {bm.name}
+                  {adSets.map((adSet) => (
+                    <SelectItem key={adSet.id} value={adSet.id}>
+                      {adSet.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

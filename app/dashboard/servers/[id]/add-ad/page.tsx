@@ -18,6 +18,7 @@ import {
 import { ArrowLeft, Plus, Minus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { safeInsert } from "@/lib/safe-query";
+import { getServerById } from "@/lib/queries/server-queries";
 
 interface Ad {
   id: string;
@@ -36,6 +37,7 @@ interface Server {
   id: string;
   name: string;
   coefficient: number;
+  is_active: boolean;
 }
 
 export default function AddServerAdPage({
@@ -50,6 +52,7 @@ export default function AddServerAdPage({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serverId, setServerId] = useState<string>("");
 
   // Formulario
   const [selectedAdId, setSelectedAdId] = useState<string>("");
@@ -58,6 +61,13 @@ export default function AddServerAdPage({
   const [leads, setLeads] = useState<number>(0);
   const [conversions, setConversions] = useState<number>(0);
   const [fbSpend, setFbSpend] = useState<number>(0);
+
+  // Extraer el ID del servidor de params al inicio
+  useEffect(() => {
+    if (params.id) {
+      setServerId(params.id);
+    }
+  }, [params.id]);
 
   // Valores calculados
   const conversionRate = leads > 0 ? (conversions / leads) * 100 : 0;
@@ -69,19 +79,26 @@ export default function AddServerAdPage({
 
   useEffect(() => {
     async function loadData() {
+      if (!serverId) return;
+
       try {
         setLoading(true);
         setError(null);
 
         // Cargar datos del servidor
-        const { data: serverData, error: serverError } = await supabase
-          .from("servers")
-          .select("id, name, coefficient")
-          .eq("id", params.id)
-          .single();
+        const serverData = await getServerById(serverId);
 
-        if (serverError) throw serverError;
+        if (!serverData) {
+          throw new Error("Servidor no encontrado");
+        }
+
         setServer(serverData);
+
+        // Verificar si el servidor está activo
+        if (!serverData.is_active) {
+          setError("No se pueden agregar anuncios a un servidor inactivo");
+          return;
+        }
 
         // Cargar anuncios activos
         const { data: adsData, error: adsError } = await supabase
@@ -131,10 +148,12 @@ export default function AddServerAdPage({
     }
 
     loadData();
-  }, [params.id]);
+  }, [serverId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!serverId) return;
 
     if (!selectedAdId || !selectedApiId) {
       setError("Por favor selecciona un anuncio y una API");
@@ -145,13 +164,18 @@ export default function AddServerAdPage({
       setSubmitting(true);
       setError(null);
 
+      // Verificar que el servidor esté activo
+      if (server && !server.is_active) {
+        throw new Error("No se pueden agregar anuncios a un servidor inactivo");
+      }
+
       // Obtener información del anuncio seleccionado
       const selectedAd = ads.find((ad) => ad.id === selectedAdId);
       if (!selectedAd) throw new Error("Anuncio no encontrado");
 
       // Crear registro en server_ads
       const serverAdData = {
-        server_id: params.id,
+        server_id: serverId,
         ad_id: selectedAdId,
         api_id: selectedApiId,
         daily_budget: budget,
@@ -165,7 +189,7 @@ export default function AddServerAdPage({
       await safeInsert("server_ads", serverAdData);
 
       // Redirigir a la página del servidor
-      router.push(`/dashboard/servers/${params.id}`);
+      router.push(`/dashboard/servers/${serverId}`);
     } catch (err: any) {
       console.error("Error submitting form:", err);
       setError(`Error al guardar: ${err.message}`);
@@ -177,6 +201,29 @@ export default function AddServerAdPage({
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">Cargando...</div>
+    );
+  }
+
+  // Si el servidor no está activo, mostrar mensaje y no permitir agregar anuncios
+  if (server && !server.is_active) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold">
+            Agregar Anuncio al Servidor {server?.name}
+          </h1>
+        </div>
+
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+          No se pueden agregar anuncios a un servidor inactivo. Por favor,
+          active el servidor primero.
+        </div>
+
+        <Button onClick={() => router.back()}>Volver</Button>
+      </div>
     );
   }
 

@@ -10,7 +10,7 @@ import { Chart } from "@/components/chart";
 import {
   type Server,
   type ServerMetrics,
-  getServers,
+  getActiveServers,
   getDailyServerMetrics,
   getDailyProgressData,
 } from "@/lib/queries/server-queries";
@@ -39,9 +39,8 @@ export default function ServersPage() {
   const fetchServers = useCallback(async () => {
     try {
       setLoading(true);
-      const allServers = await getServers();
-      // Filtrar solo servidores activos
-      const activeServers = allServers.filter((server) => server.is_active);
+      // Obtener solo servidores activos
+      const activeServers = await getActiveServers();
       setServers(activeServers);
 
       // Seleccionar el primer servidor activo por defecto
@@ -115,7 +114,7 @@ export default function ServersPage() {
             Servidores
           </h1>
           <p className="text-usina-text-secondary">
-            Gestiona los servidores y sus anuncios activos.
+            Gestiona los servidores activos y sus anuncios.
           </p>
         </div>
         <div className="flex space-x-2">

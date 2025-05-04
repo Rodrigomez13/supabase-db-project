@@ -16,75 +16,82 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
-import {
-  getCampaignById,
-  updateCampaign,
-} from "@/lib/queries/campaign-queries";
-import { safeQuery } from "@/lib/safe-query";
+import { safeQuery, safeUpdate } from "@/lib/safe-query";
 import { StatusBadge } from "@/components/status-badge";
 
-interface BusinessManager {
+interface AdSet {
+  id: string;
+  name: string;
+  adset_id: string;
+  budget: number;
+  status: string;
+  campaign_id: string;
+  created_at: string;
+}
+
+interface Campaign {
   id: string;
   name: string;
 }
 
-export default function EditCampaignPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function EditAdSetPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const [adSet, setAdSet] = useState<AdSet | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [businessManagers, setBusinessManagers] = useState<BusinessManager[]>(
-    []
-  );
-  const [campaignId, setCampaignId] = useState<string>("");
+  const [adSetId, setAdSetId] = useState<string>("");
 
   // Formulario
   const [name, setName] = useState("");
-  const [campaignIdValue, setCampaignIdValue] = useState("");
-  const [objective, setObjective] = useState("");
+  const [adsetId, setAdsetId] = useState("");
+  const [budget, setBudget] = useState(0);
   const [status, setStatus] = useState("ACTIVE");
-  const [bmId, setBmId] = useState("");
+  const [campaignId, setCampaignId] = useState("");
 
-  // Extraer el ID de la campaña de params al inicio
+  // Extraer el ID del conjunto de anuncios de params al inicio
   useEffect(() => {
     if (params.id) {
-      setCampaignId(params.id);
+      setAdSetId(params.id);
     }
   }, [params.id]);
 
   useEffect(() => {
     async function loadData() {
-      if (!campaignId) return;
+      if (!adSetId) return;
 
       try {
         setLoading(true);
         setError(null);
 
-        // Cargar datos de la campaña
-        const campaign = await getCampaignById(campaignId);
+        // Cargar datos del conjunto de anuncios
+        const adSets = await safeQuery<AdSet>("ad_sets", {
+          where: { id: adSetId },
+          single: true,
+        });
 
-        if (!campaign) {
-          throw new Error("Campaña no encontrada");
+        if (!adSets || adSets.length === 0) {
+          throw new Error("Conjunto de anuncios no encontrado");
         }
 
-        // Establecer valores del formulario
-        setName(campaign.name);
-        setCampaignIdValue(campaign.campaign_id);
-        setObjective(campaign.objective);
-        setStatus(campaign.status);
-        setBmId(campaign.bm_id);
+        const adSetData = adSets[0];
+        setAdSet(adSetData);
 
-        // Cargar business managers
-        const bmData = await safeQuery<BusinessManager>("business_managers", {
+        // Establecer valores del formulario
+        setName(adSetData.name);
+        setAdsetId(adSetData.adset_id);
+        setBudget(adSetData.budget);
+        setStatus(adSetData.status);
+        setCampaignId(adSetData.campaign_id);
+
+        // Cargar campañas
+        const campaignsData = await safeQuery<Campaign>("campaigns", {
           orderBy: { column: "name", ascending: true },
         });
-        setBusinessManagers(bmData);
+        setCampaigns(campaignsData);
       } catch (err: any) {
-        console.error("Error loading campaign:", err);
+        console.error("Error loading ad set:", err);
         setError(`Error al cargar datos: ${err.message}`);
       } finally {
         setLoading(false);
@@ -92,37 +99,37 @@ export default function EditCampaignPage({
     }
 
     loadData();
-  }, [campaignId]);
+  }, [adSetId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!campaignId) return;
+    if (!adSetId) return;
 
     try {
       setSubmitting(true);
       setError(null);
 
       // Validar datos
-      if (!name || !campaignIdValue || !bmId) {
+      if (!name || !adsetId || !campaignId) {
         throw new Error("Por favor completa todos los campos requeridos");
       }
 
-      // Actualizar campaña
+      // Actualizar conjunto de anuncios
       const updatedData = {
         name,
-        campaign_id: campaignIdValue,
-        objective,
+        adset_id: adsetId,
+        budget,
         status,
-        bm_id: bmId,
+        campaign_id: campaignId,
       };
 
-      await updateCampaign(campaignId, updatedData);
+      await safeUpdate("ad_sets", adSetId, updatedData);
 
-      // Redirigir a la lista de campañas
-      router.push("/dashboard/advertising/campaigns");
+      // Redirigir a la lista de conjuntos de anuncios
+      router.push("/dashboard/advertising/ad-sets");
     } catch (err: any) {
-      console.error("Error updating campaign:", err);
+      console.error("Error updating ad set:", err);
       setError(`Error al actualizar: ${err.message}`);
     } finally {
       setSubmitting(false);
@@ -137,13 +144,26 @@ export default function EditCampaignPage({
     );
   }
 
+  if (!adSet) {
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-2xl font-bold mb-4">
+          Conjunto de anuncios no encontrado
+        </h2>
+        <Button onClick={() => router.push("/dashboard/advertising/ad-sets")}>
+          Volver a Conjuntos de Anuncios
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Editar Campaña</h1>
+        <h1 className="text-2xl font-bold">Editar Conjunto de Anuncios</h1>
       </div>
 
       {error && (
@@ -155,7 +175,7 @@ export default function EditCampaignPage({
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Información de la Campaña</CardTitle>
+            <CardTitle>Información del Conjunto de Anuncios</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -169,21 +189,25 @@ export default function EditCampaignPage({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="campaign_id">ID de la Campaña</Label>
+              <Label htmlFor="adset_id">ID del Conjunto de Anuncios</Label>
               <Input
-                id="campaign_id"
-                value={campaignIdValue}
-                onChange={(e) => setCampaignIdValue(e.target.value)}
+                id="adset_id"
+                value={adsetId}
+                onChange={(e) => setAdsetId(e.target.value)}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="objective">Objetivo</Label>
+              <Label htmlFor="budget">Presupuesto Diario ($)</Label>
               <Input
-                id="objective"
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
+                id="budget"
+                type="number"
+                step="0.01"
+                min="0"
+                value={budget}
+                onChange={(e) => setBudget(Number(e.target.value))}
+                required
               />
             </div>
 
@@ -205,15 +229,15 @@ export default function EditCampaignPage({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bm_id">Business Manager</Label>
-              <Select value={bmId} onValueChange={setBmId}>
+              <Label htmlFor="campaign">Campaña</Label>
+              <Select value={campaignId} onValueChange={setCampaignId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un business manager" />
+                  <SelectValue placeholder="Selecciona una campaña" />
                 </SelectTrigger>
                 <SelectContent>
-                  {businessManagers.map((bm) => (
-                    <SelectItem key={bm.id} value={bm.id}>
-                      {bm.name}
+                  {campaigns.map((campaign) => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      {campaign.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

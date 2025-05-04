@@ -198,3 +198,6 @@ export function Chart({
     </div>
   );
 }
+
+export const BarChart = Chart;
+export const LineChart = Chart;

@@ -51,10 +51,9 @@ export async function getServers(): Promise<Server[]> {
 export async function getActiveServers(): Promise<Server[]> {
   try {
     const data = await safeQuery<Server>("servers", {
-      filter: { column: "is_active", operator: "eq", value: true },
-      orderBy: { column: "created_at", order: "desc" },
-      select: "*",
-    } as QueryOptions)
+      where: { is_active: true },
+      orderBy: { column: "created_at", ascending: false },
+    })
     return data
   } catch (error) {
     console.error("Error in getActiveServers:", error)
@@ -66,14 +65,14 @@ export async function getActiveServers(): Promise<Server[]> {
 export async function getServerById(id: string): Promise<Server | null> {
   try {
     const data = await safeQuery<Server>("servers", {
-      filter: { column: "id", operator: "eq", value: id },
-    } as QueryOptions) // Casting explícito
+      where: { id },
+      single: true,
+    })
     return data.length > 0 ? data[0] : null
   } catch (error) {
     console.error(`Error in getServerById for id ${id}:`, error)
     throw error
   }
-
 }
 
 // Función para crear un nuevo servidor

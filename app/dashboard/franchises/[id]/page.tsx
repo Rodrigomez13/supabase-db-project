@@ -48,8 +48,9 @@ export default function EditFranchisePage({
   const router = useRouter();
 
   useEffect(() => {
-    if (params.id) {
-      fetchFranchise(params.id);
+    const id = params.id;
+    if (id) {
+      fetchFranchise(id);
     }
   }, [params.id]);
 
@@ -57,7 +58,7 @@ export default function EditFranchisePage({
     try {
       setIsLoading(true);
       const data = await safeQuery<Franchise>("franchises", {
-        filters: [{ column: "id", value: id }],
+        where: [{ column: "id", value: id }],
       });
 
       if (data.length > 0) {
