@@ -46,8 +46,8 @@ export default function AdsPage() {
     try {
       const result = await deleteAd(id);
 
-      if (!result.success) {
-        throw new Error(result.error);
+      if (!result) {
+        throw new Error("Error");
       }
 
       // Actualizamos la lista localmente para evitar otra consulta

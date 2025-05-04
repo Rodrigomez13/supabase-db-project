@@ -141,7 +141,7 @@ export default function RegisterActivityPage() {
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.targetarget;
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: name === "date" ? value : Number(value),
@@ -198,7 +198,7 @@ export default function RegisterActivityPage() {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">
+      <h1 className="text-3xl font-bold mb-6 text-usina-text-primary">
         Registrar Actividad Publicitaria
       </h1>
 
@@ -209,15 +209,19 @@ export default function RegisterActivityPage() {
         </TabsList>
 
         <TabsContent value="register">
-          <Card>
+          <Card className="border-usina-card bg-background/5">
             <CardHeader>
-              <CardTitle>Registrar Leads, Cargas y Gastos</CardTitle>
+              <CardTitle className="text-usina-text-primary">
+                Registrar Leads, Cargas y Gastos
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="server">Servidor</Label>
+                    <Label htmlFor="server" className="text-usina-text-primary">
+                      Servidor
+                    </Label>
                     <Select
                       value={selectedServer}
                       onValueChange={setSelectedServer}
@@ -236,7 +240,9 @@ export default function RegisterActivityPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="ad">Anuncio</Label>
+                    <Label htmlFor="ad" className="text-usina-text-primary">
+                      Anuncio
+                    </Label>
                     <Select value={selectedAd} onValueChange={setSelectedAd}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona un anuncio" />
@@ -252,7 +258,9 @@ export default function RegisterActivityPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="leads">Leads Generados</Label>
+                    <Label htmlFor="leads" className="text-usina-text-primary">
+                      Leads Generados
+                    </Label>
                     <Input
                       id="leads"
                       name="leads"
@@ -264,7 +272,9 @@ export default function RegisterActivityPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="loads">Cargas</Label>
+                    <Label htmlFor="loads" className="text-usina-text-primary">
+                      Cargas
+                    </Label>
                     <Input
                       id="loads"
                       name="loads"
@@ -276,7 +286,9 @@ export default function RegisterActivityPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="spent">Gasto ($)</Label>
+                    <Label htmlFor="spent" className="text-usina-text-primary">
+                      Gasto ($)
+                    </Label>
                     <Input
                       id="spent"
                       name="spent"
@@ -289,7 +301,9 @@ export default function RegisterActivityPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="date">Fecha</Label>
+                    <Label htmlFor="date" className="text-usina-text-primary">
+                      Fecha
+                    </Label>
                     <Input
                       id="date"
                       name="date"
@@ -325,15 +339,19 @@ export default function RegisterActivityPage() {
         </TabsContent>
 
         <TabsContent value="history">
-          <Card>
+          <Card className="border-usina-card bg-background/5">
             <CardHeader>
-              <CardTitle>Historial de Actividad</CardTitle>
+              <CardTitle className="text-usina-text-primary">
+                Historial de Actividad
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {historyLoading ? (
-                <div className="text-center py-4">Cargando historial...</div>
+                <div className="text-center py-4 text-usina-text-secondary">
+                  Cargando historial...
+                </div>
               ) : activityHistory.length === 0 ? (
-                <div className="text-center py-4">
+                <div className="text-center py-4 text-usina-text-secondary">
                   No hay registros de actividad
                 </div>
               ) : (
@@ -341,29 +359,47 @@ export default function RegisterActivityPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Servidor</TableHead>
-                        <TableHead>Anuncio</TableHead>
-                        <TableHead>Leads</TableHead>
-                        <TableHead>Cargas</TableHead>
-                        <TableHead>Gasto</TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          Fecha
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          Servidor
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          Anuncio
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          Leads
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          Cargas
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          Gasto
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {activityHistory.map((record) => (
                         <TableRow key={record.id}>
-                          <TableCell>
+                          <TableCell className="text-usina-text-primary">
                             {new Date(record.date).toLocaleDateString()}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-usina-text-primary">
                             {record.servers?.name || "Desconocido"}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-usina-text-primary">
                             {record.ads?.name || "Desconocido"}
                           </TableCell>
-                          <TableCell>{record.leads}</TableCell>
-                          <TableCell>{record.loads}</TableCell>
-                          <TableCell>${record.spent.toFixed(2)}</TableCell>
+                          <TableCell className="text-usina-text-primary">
+                            {record.leads}
+                          </TableCell>
+                          <TableCell className="text-usina-text-primary">
+                            {record.loads}
+                          </TableCell>
+                          <TableCell className="text-usina-text-primary">
+                            ${record.spent.toFixed(2)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

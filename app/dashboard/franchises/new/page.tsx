@@ -43,8 +43,8 @@ export default function NewFranchisePage() {
     try {
       const result = await safeInsert("franchises", formData);
 
-      if (!result.success) {
-        throw new Error(result.error);
+      if (!result) {
+        throw new Error("Error");
       }
 
       router.push("/dashboard/franchises");

@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
@@ -58,10 +57,9 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <div className="flex-1 flex items-center justify-end p-8">
-        <Card className="w-full max-w-md bg-card border-border/30">
+        <Card className="w-full max-w-md bg-card border-border/30 animate-slide-in-from-right animate-fade-in duration-700">
           <CardHeader className="space-y-2 text-center">
-            {/* Logo eliminado */}
-            <CardTitle className="text-2xl text-[#26D9C7]">
+            <CardTitle className="text-2xl text-[#26D9C7] font-bold">
               Iniciar Sesión
             </CardTitle>
             <CardDescription className="text-[#0B514C]">
@@ -79,9 +77,9 @@ export default function LoginPage() {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[#3D9B92]">
+                <Label htmlFor="email" className="text-[#26D9C7]">
                   Correo Electrónico
-                </Label>{" "}
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -94,7 +92,7 @@ export default function LoginPage() {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label htmlFor="password" className="text-[#3D9B92]">
+                  <Label htmlFor="password" className="text-[#26D9C7]">
                     Contraseña
                   </Label>
                   <a href="#" className="text-sm text-primary hover:underline">
@@ -118,7 +116,7 @@ export default function LoginPage() {
                     setRememberMe(checked as boolean)
                   }
                 />
-                <Label htmlFor="remember" className="text-sm text-[#3D9B92]">
+                <Label htmlFor="remember" className="text-sm text-[#26D9C7]">
                   Recordarme
                 </Label>
               </div>
@@ -139,11 +137,11 @@ export default function LoginPage() {
       </div>
       <div className="hidden lg:block lg:flex-1 bg-[url('/emerald-depths.png')] bg-cover bg-center">
         <div className="h-full w-full bg-gradient-to-r from-background to-transparent flex items-center justify-start">
-          <div className="px-16">
+          <div className="px-16 animate-slide-in-from-left animate-fade-in duration-700">
             <img
-              src="/usina-login.png"
+              src="/usina-leads-login2.png"
               alt="USINA"
-              className="mb-8 w-[400px]" // ajusta si querés más
+              className="mb-8 w-[400px]"
             />
             <p className="text-2xl font-medium text-[#0B514C] max-w-md">
               Sistema integral de gestión de leads, campañas publicitarias y

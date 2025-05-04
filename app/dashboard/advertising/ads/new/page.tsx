@@ -75,8 +75,8 @@ export default function NewAdPage() {
     try {
       const result = await safeInsert("ads", formData);
 
-      if (!result.success) {
-        throw new Error(result.error);
+      if (!result) {
+        throw new Error("Error");
       }
 
       router.push("/dashboard/advertising/ads");

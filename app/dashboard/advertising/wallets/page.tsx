@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -11,76 +11,135 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PlusIcon, Pencil, Trash2 } from "lucide-react";
+import { PlusIcon, Pencil, Trash2, Search } from "lucide-react";
 import Link from "next/link";
 import { safeQuery, safeDelete } from "@/lib/safe-query";
+import { Input } from "@/components/ui/input";
 
-interface Wallet {
+// Definir interfaces para los datos relacionados
+interface PortfolioData {
+  name: string;
+}
+
+interface WalletData {
+  name: string;
+}
+
+interface AdvertisingAccount {
   id: string;
   name: string;
-  account_number: string;
-  balance: number;
-  currency: string;
+  account_id: string;
+  platform: string;
+  status: string;
+  portfolio_id?: string | null;
+  portfolio?: PortfolioData | null;
+  wallet_id?: string | null;
+  wallet?: WalletData | null;
   created_at: string;
 }
 
-export default function WalletsPage() {
-  const [wallets, setWallets] = useState<Wallet[]>([]);
+// Definir la estructura de respuesta de safeQuery
+interface SafeQueryResponse<T> {
+  data: T[] | null;
+  error: string | null;
+  success: boolean;
+}
+
+export default function AdvertisingAccountsPage() {
+  const [accounts, setAccounts] = useState<AdvertisingAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetchWallets();
+    fetchAdvertisingAccounts();
   }, []);
 
-  async function fetchWallets() {
+  async function fetchAdvertisingAccounts() {
     try {
       setLoading(true);
-
-      // Usamos nuestra función de consulta segura
-      const data = await safeQuery<Wallet>("wallets", {
-        orderBy: { column: "created_at", ascending: false },
-      });
-
-      setWallets(data);
       setError(null);
+
+      const result = (await safeQuery<AdvertisingAccount>(
+        "advertising_accounts",
+        {
+          select: `
+          id, 
+          name, 
+          account_id, 
+          platform, 
+          status, 
+          portfolio_id, 
+          portfolio:portfolio_id(name), 
+          wallet_id, 
+          wallet:wallet_id(name), 
+          created_at
+        `,
+          orderBy: { column: "created_at", ascending: false },
+        }
+      )) as unknown as SafeQueryResponse<AdvertisingAccount>;
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setAccounts(result.data ?? []);
     } catch (err: any) {
-      console.error("Error loading wallets:", err);
+      console.error("Error loading advertising accounts:", err);
       setError(
-        "No se pudieron cargar las cuentas publicitarias. Por favor, intenta de nuevo más tarde."
+        `No se pudieron cargar las cuentas publicitarias: ${
+          err.message ?? "Error desconocido"
+        }`
       );
-      setWallets([]);
+      setAccounts([]);
     } finally {
       setLoading(false);
     }
   }
 
-  async function deleteWallet(id: string) {
+  async function deleteAccount(id: string) {
     try {
-      const result = await safeDelete("wallets", id);
+      const result = await safeDelete("advertising_accounts", id);
 
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error ?? "Error desconocido");
       }
 
-      // Actualizamos la lista localmente para evitar otra consulta
-      setWallets(wallets.filter((wallet) => wallet.id !== id));
+      setAccounts(accounts.filter((account) => account.id !== id));
     } catch (err: any) {
-      console.error("Error deleting wallet:", err);
+      console.error("Error deleting advertising account:", err);
       setError(
         `Error al eliminar cuenta publicitaria: ${
-          err.message || "Error desconocido"
+          err.message ?? "Error desconocido"
         }`
       );
     }
   }
 
+  const filteredAccounts = accounts.filter(
+    (account) =>
+      account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      account.account_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      account.platform.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (account.portfolio?.name &&
+        account.portfolio.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
+      (account.wallet?.name &&
+        account.wallet.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-usina-text-primary">
-          Cuentas Publicitarias
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold text-usina-text-primary">
+            Cuentas Publicitarias
+          </h1>
+          <p className="text-usina-text-secondary">
+            Gestiona tus cuentas publicitarias en diferentes plataformas
+          </p>
+        </div>
         <Link href="/dashboard/advertising/wallets/new">
           <Button className="bg-usina-primary hover:bg-usina-secondary">
             <PlusIcon className="h-4 w-4 mr-2" />
@@ -95,13 +154,31 @@ export default function WalletsPage() {
         </div>
       )}
 
+      <div className="flex justify-end mb-4">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar cuentas..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8 bg-background/10 border-usina-card/30"
+          />
+        </div>
+      </div>
+
       <Card className="border-usina-card bg-background/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-usina-text-primary">
+            Cuentas Publicitarias
+          </CardTitle>
+        </CardHeader>
         <CardContent className="p-0">
           {loading ? (
             <div className="p-6 text-center text-usina-text-secondary">
               Cargando cuentas publicitarias...
             </div>
-          ) : wallets.length === 0 ? (
+          ) : filteredAccounts.length === 0 ? (
             <div className="p-6 text-center text-usina-text-secondary">
               No hay cuentas publicitarias registradas
             </div>
@@ -113,13 +190,19 @@ export default function WalletsPage() {
                     Nombre
                   </TableHead>
                   <TableHead className="text-usina-text-secondary">
-                    Número de Cuenta
+                    ID de Cuenta
                   </TableHead>
                   <TableHead className="text-usina-text-secondary">
-                    Balance
+                    Plataforma
                   </TableHead>
                   <TableHead className="text-usina-text-secondary">
-                    Moneda
+                    Portfolio
+                  </TableHead>
+                  <TableHead className="text-usina-text-secondary">
+                    Billetera
+                  </TableHead>
+                  <TableHead className="text-usina-text-secondary">
+                    Estado
                   </TableHead>
                   <TableHead className="text-right text-usina-text-secondary">
                     Acciones
@@ -127,24 +210,38 @@ export default function WalletsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {wallets.map((wallet) => (
-                  <TableRow key={wallet.id} className="border-usina-card/20">
+                {filteredAccounts.map((account) => (
+                  <TableRow key={account.id} className="border-usina-card/20">
                     <TableCell className="font-medium text-usina-text-primary">
-                      {wallet.name}
+                      {account.name}
                     </TableCell>
                     <TableCell className="text-usina-text-secondary">
-                      {wallet.account_number}
+                      {account.account_id}
                     </TableCell>
                     <TableCell className="text-usina-text-secondary">
-                      {wallet.balance?.toFixed(2) || "0.00"}
+                      {account.platform}
                     </TableCell>
                     <TableCell className="text-usina-text-secondary">
-                      {wallet.currency}
+                      {account.portfolio?.name ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-usina-text-secondary">
+                      {account.wallet?.name ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          account.status === "active"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {account.status === "active" ? "Activa" : "Inactiva"}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Link
-                          href={`/dashboard/advertising/wallets/${wallet.id}`}
+                          href={`/dashboard/advertising/wallets/${account.id}`}
                         >
                           <Button
                             variant="outline"
@@ -164,7 +261,7 @@ export default function WalletsPage() {
                                 "¿Estás seguro de eliminar esta cuenta publicitaria?"
                               )
                             ) {
-                              deleteWallet(wallet.id);
+                              deleteAccount(account.id);
                             }
                           }}
                         >

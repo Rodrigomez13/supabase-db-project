@@ -194,3 +194,33 @@ export async function getDailyProgressData(serverId: string) {
     return null
   }
 }
+
+// Función para obtener los anuncios de un servidor
+export async function getServerAds(serverId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("server_ads")
+      .select(`
+       id,
+       server_id,
+       ad_id,
+       leads,
+       loads,
+       spent,
+       date,
+       ads (
+         name,
+         ad_id,
+         description
+       )
+     `)
+      .eq("server_id", serverId)
+      .order("date", { ascending: false })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error(`Error in getServerAds for serverId ${serverId}:`, error)
+    return []
+  }
+}

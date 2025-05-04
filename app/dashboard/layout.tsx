@@ -20,6 +20,9 @@ import {
   Database,
   BellIcon,
   Activity,
+  DollarSign,
+  Wallet,
+  CreditCard,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UsinaLogo } from "@/components/usina-logo";
@@ -35,6 +38,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [advertisingOpen, setAdvertisingOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [financesOpen, setFinancesOpen] = useState(false);
   const { setTheme } = useTheme();
 
   useEffect(() => {
@@ -53,6 +57,11 @@ export default function DashboardLayout({
     // Abrir automáticamente el menú de admin si estamos en alguna de sus rutas
     if (pathname?.includes("/admin/")) {
       setAdminOpen(true);
+    }
+
+    // Abrir automáticamente el menú de finanzas si estamos en alguna de sus rutas
+    if (pathname?.includes("/dashboard/finances")) {
+      setFinancesOpen(true);
     }
   }, [user, loading, router, pathname, setTheme]);
 
@@ -97,6 +106,8 @@ export default function DashboardLayout({
     if (pathname?.includes("/admin/setup")) return "Configuración DB";
     if (pathname?.includes("/admin/rls-manager")) return "Administrar RLS";
     if (pathname?.includes("/admin/fix-user")) return "Arreglar Rol de Usuario";
+    if (pathname?.includes("/dashboard/finances")) return "Finanzas";
+    if (pathname?.includes("/dashboard/finances/wallets")) return "Billeteras";
     return "";
   };
 
@@ -120,6 +131,8 @@ export default function DashboardLayout({
       return "Configura las opciones del sistema.";
     if (pathname?.includes("/admin/"))
       return "Administra la configuración avanzada del sistema.";
+    if (pathname?.includes("/dashboard/finances"))
+      return "Gestiona las finanzas y billeteras de la plataforma.";
     return "";
   };
 
@@ -272,6 +285,59 @@ export default function DashboardLayout({
                       <div className="flex items-center gap-1">
                         <Activity className="h-4 w-4" />
                         Registrar Actividad
+                      </div>
+                    </Link>
+                  </li>
+                </ul>
+              )}
+            </li>
+            {/* Nuevo menú de Finanzas */}
+            <li>
+              <button
+                onClick={() => setFinancesOpen(!financesOpen)}
+                className={`usina-sidebar-nav-item w-full justify-between ${
+                  pathname?.includes("/dashboard/finances") ? "active" : ""
+                }`}
+              >
+                <div className="flex items-center">
+                  <DollarSign className="usina-sidebar-icon" />
+                  Finanzas
+                </div>
+                {financesOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+              {financesOpen && (
+                <ul className="pl-10 mt-1 space-y-1">
+                  <li>
+                    <Link
+                      href="/dashboard/finances"
+                      className={`block p-2 rounded-md text-sm ${
+                        pathname === "/dashboard/finances"
+                          ? "text-primary font-medium"
+                          : "hover:bg-accent/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        <CreditCard className="h-4 w-4" />
+                        Resumen
+                      </div>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/dashboard/finances/wallets"
+                      className={`block p-2 rounded-md text-sm ${
+                        pathname?.includes("/dashboard/finances/wallets")
+                          ? "text-primary font-medium"
+                          : "hover:bg-accent/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        <Wallet className="h-4 w-4" />
+                        Cuentas Publicitarias
                       </div>
                     </Link>
                   </li>
