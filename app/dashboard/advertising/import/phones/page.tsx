@@ -1,152 +1,175 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Progress } from "@/components/ui/progress"
-import { Upload, AlertCircle, CheckCircle2 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
-import { toast } from "@/components/ui/use-toast"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Upload, AlertCircle, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "@/components/ui/use-toast";
 
 interface PhoneData {
-  phone_number: string
-  franchise_id: string
-  is_active: boolean
-  notes?: string
+  phone_number: string;
+  franchise_id: string;
+  is_Activo: boolean;
+  notes?: string;
 }
 
 export default function ImportPhonesPage() {
-  const [file, setFile] = useState<File | null>(null)
-  const [previewData, setPreviewData] = useState<PhoneData[]>([])
-  const [importing, setImporting] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [file, setFile] = useState<File | null>(null);
+  const [previewData, setPreviewData] = useState<PhoneData[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<{
-    total: number
-    success: number
-    errors: number
-    errorMessages: string[]
+    total: number;
+    success: number;
+    errors: number;
+    errorMessages: string[];
   }>({
     total: 0,
     success: 0,
     errors: 0,
     errorMessages: [],
-  })
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (!selectedFile) return
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
 
-    if (selectedFile.type !== "text/csv" && !selectedFile.name.endsWith(".csv")) {
+    if (
+      selectedFile.type !== "text/csv" &&
+      !selectedFile.name.endsWith(".csv")
+    ) {
       toast({
         title: "Formato no válido",
         description: "Por favor selecciona un archivo CSV",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setFile(selectedFile)
-    parseCSV(selectedFile)
-  }
+    setFile(selectedFile);
+    parseCSV(selectedFile);
+  };
 
   const parseCSV = (file: File) => {
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target?.result as string
-      const lines = text.split("\n")
-      const headers = lines[0].split(",").map((h) => h.trim())
+      const text = e.target?.result as string;
+      const lines = text.split("\n");
+      const headers = lines[0].split(",").map((h) => h.trim());
 
       // Verificar que el CSV tiene las columnas requeridas
-      const requiredColumns = ["phone_number", "franchise_id"]
-      const missingColumns = requiredColumns.filter((col) => !headers.includes(col))
+      const requiredColumns = ["phone_number", "franchise_id"];
+      const missingColumns = requiredColumns.filter(
+        (col) => !headers.includes(col)
+      );
 
       if (missingColumns.length > 0) {
         toast({
           title: "Formato de CSV incorrecto",
-          description: `Faltan columnas requeridas: ${missingColumns.join(", ")}`,
+          description: `Faltan columnas requeridas: ${missingColumns.join(
+            ", "
+          )}`,
           variant: "destructive",
-        })
-        setFile(null)
-        return
+        });
+        setFile(null);
+        return;
       }
 
       // Parsear los datos (primeras 5 filas para preview)
-      const previewRows = lines.slice(1, 6).filter((line) => line.trim() !== "")
+      const previewRows = lines
+        .slice(1, 6)
+        .filter((line) => line.trim() !== "");
       const parsedData = previewRows.map((line) => {
-        const values = line.split(",").map((v) => v.trim())
-        const row: Record<string, any> = {}
+        const values = line.split(",").map((v) => v.trim());
+        const row: Record<string, any> = {};
 
         headers.forEach((header, index) => {
-          if (header === "is_active") {
-            row[header] = values[index]?.toLowerCase() === "true"
+          if (header === "is_Activo") {
+            row[header] = values[index]?.toLowerCase() === "true";
           } else {
-            row[header] = values[index] || ""
+            row[header] = values[index] || "";
           }
-        })
+        });
 
-        return row as PhoneData
-      })
+        return row as PhoneData;
+      });
 
-      setPreviewData(parsedData)
-    }
+      setPreviewData(parsedData);
+    };
 
-    reader.readAsText(file)
-  }
+    reader.readAsText(file);
+  };
 
   const handleImport = async () => {
-    if (!file) return
+    if (!file) return;
 
-    setImporting(true)
-    setProgress(0)
+    setImporting(true);
+    setProgress(0);
     setResults({
       total: 0,
       success: 0,
       errors: 0,
       errorMessages: [],
-    })
+    });
 
     try {
-      const reader = new FileReader()
+      const reader = new FileReader();
 
       reader.onload = async (e) => {
-        const text = e.target?.result as string
-        const lines = text.split("\n")
-        const headers = lines[0].split(",").map((h) => h.trim())
+        const text = e.target?.result as string;
+        const lines = text.split("\n");
+        const headers = lines[0].split(",").map((h) => h.trim());
 
         // Filtrar líneas vacías
-        const dataRows = lines.slice(1).filter((line) => line.trim() !== "")
-        const total = dataRows.length
-        let success = 0
-        let errors = 0
-        const errorMessages: string[] = []
+        const dataRows = lines.slice(1).filter((line) => line.trim() !== "");
+        const total = dataRows.length;
+        let success = 0;
+        let errors = 0;
+        const errorMessages: string[] = [];
 
         for (let i = 0; i < dataRows.length; i++) {
-          const line = dataRows[i]
-          const values = line.split(",").map((v) => v.trim())
-          const row: Record<string, any> = {}
+          const line = dataRows[i];
+          const values = line.split(",").map((v) => v.trim());
+          const row: Record<string, any> = {};
 
           headers.forEach((header, index) => {
-            if (header === "is_active") {
-              row[header] = values[index]?.toLowerCase() === "true"
+            if (header === "is_Activo") {
+              row[header] = values[index]?.toLowerCase() === "true";
             } else {
-              row[header] = values[index] || ""
+              row[header] = values[index] || "";
             }
-          })
+          });
 
           try {
             // Verificar que el número de teléfono y franchise_id existen
             if (!row.phone_number) {
-              throw new Error(`Fila ${i + 2}: Número de teléfono vacío`)
+              throw new Error(`Fila ${i + 2}: Número de teléfono vacío`);
             }
 
             if (!row.franchise_id) {
-              throw new Error(`Fila ${i + 2}: ID de franquicia vacío`)
+              throw new Error(`Fila ${i + 2}: ID de franquicia vacío`);
             }
 
             // Verificar que la franquicia existe
@@ -154,37 +177,43 @@ export default function ImportPhonesPage() {
               .from("franchises")
               .select("id")
               .eq("id", row.franchise_id)
-              .single()
+              .single();
 
             if (franchiseError || !franchise) {
-              throw new Error(`Fila ${i + 2}: La franquicia con ID ${row.franchise_id} no existe`)
+              throw new Error(
+                `Fila ${i + 2}: La franquicia con ID ${
+                  row.franchise_id
+                } no existe`
+              );
             }
 
             // Insertar el teléfono
             const { error } = await supabase.from("franchise_phones").insert({
               phone_number: row.phone_number,
               franchise_id: row.franchise_id,
-              is_active: row.is_active !== undefined ? row.is_active : true,
+              is_Activo: row.is_Activo !== undefined ? row.is_Activo : true,
               notes: row.notes || null,
-            })
+            });
 
             if (error) {
               if (error.code === "23505") {
                 // Código de error de duplicado
-                throw new Error(`Fila ${i + 2}: El número ${row.phone_number} ya existe`)
+                throw new Error(
+                  `Fila ${i + 2}: El número ${row.phone_number} ya existe`
+                );
               } else {
-                throw new Error(`Fila ${i + 2}: ${error.message}`)
+                throw new Error(`Fila ${i + 2}: ${error.message}`);
               }
             }
 
-            success++
+            success++;
           } catch (error: any) {
-            errors++
-            errorMessages.push(error.message)
+            errors++;
+            errorMessages.push(error.message);
           }
 
           // Actualizar progreso
-          setProgress(Math.round(((i + 1) / total) * 100))
+          setProgress(Math.round(((i + 1) / total) * 100));
 
           // Actualizar resultados parciales cada 10 filas
           if ((i + 1) % 10 === 0 || i === dataRows.length - 1) {
@@ -193,7 +222,7 @@ export default function ImportPhonesPage() {
               success,
               errors,
               errorMessages,
-            })
+            });
           }
         }
 
@@ -203,53 +232,62 @@ export default function ImportPhonesPage() {
           success,
           errors,
           errorMessages,
-        })
+        });
 
         if (errors === 0) {
           toast({
             title: "Importación completada",
             description: `Se importaron ${success} números de teléfono correctamente`,
-          })
+          });
         } else {
           toast({
             title: "Importación completada con errores",
             description: `Se importaron ${success} de ${total} números. Hubo ${errors} errores.`,
             variant: "destructive",
-          })
+          });
         }
-      }
+      };
 
-      reader.readAsText(file)
+      reader.readAsText(file);
     } catch (error: any) {
       toast({
         title: "Error en la importación",
         description: error.message,
         variant: "destructive",
-      })
+      });
     } finally {
-      setImporting(false)
+      setImporting(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Importar Teléfonos</h1>
-        <p className="text-muted-foreground">Importa números de teléfono desde un archivo CSV</p>
+        <p className="text-muted-foreground">
+          Importa números de teléfono desde un archivo CSV
+        </p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Seleccionar Archivo CSV</CardTitle>
           <CardDescription>
-            El archivo debe contener las columnas: phone_number, franchise_id, is_active (opcional), notes (opcional)
+            El archivo debe contener las columnas: phone_number, franchise_id,
+            is_Activo (opcional), notes (opcional)
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="grid w-full max-w-sm items-center gap-1.5">
               <Label htmlFor="csv-file">Archivo CSV</Label>
-              <Input id="csv-file" type="file" accept=".csv" onChange={handleFileChange} disabled={importing} />
+              <Input
+                id="csv-file"
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                disabled={importing}
+              />
             </div>
 
             {previewData.length > 0 && (
@@ -269,14 +307,15 @@ export default function ImportPhonesPage() {
                       <TableRow key={index}>
                         <TableCell>{row.phone_number}</TableCell>
                         <TableCell>{row.franchise_id}</TableCell>
-                        <TableCell>{row.is_active ? "Sí" : "No"}</TableCell>
+                        <TableCell>{row.is_Activo ? "Sí" : "No"}</TableCell>
                         <TableCell>{row.notes || "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Mostrando {previewData.length} de {file ? file.name : ""} (vista previa)
+                  Mostrando {previewData.length} de {file ? file.name : ""}{" "}
+                  (vista previa)
                 </p>
               </div>
             )}
@@ -286,8 +325,8 @@ export default function ImportPhonesPage() {
           <Button
             variant="outline"
             onClick={() => {
-              setFile(null)
-              setPreviewData([])
+              setFile(null);
+              setPreviewData([]);
             }}
             disabled={importing || !file}
           >
@@ -323,11 +362,15 @@ export default function ImportPhonesPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-green-600">Exitosos</p>
-                  <p className="text-2xl font-bold text-green-600">{results.success}</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {results.success}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-red-600">Errores</p>
-                  <p className="text-2xl font-bold text-red-600">{results.errors}</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {results.errors}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Progreso</p>
@@ -355,7 +398,9 @@ export default function ImportPhonesPage() {
                 <Alert className="bg-green-50 border-green-200">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertTitle>Importación exitosa</AlertTitle>
-                  <AlertDescription>Todos los registros fueron importados correctamente.</AlertDescription>
+                  <AlertDescription>
+                    Todos los registros fueron importados correctamente.
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -364,7 +409,8 @@ export default function ImportPhonesPage() {
                   <AlertCircle className="h-4 w-4 text-yellow-600" />
                   <AlertTitle>Importación parcial</AlertTitle>
                   <AlertDescription>
-                    Se importaron {results.success} registros correctamente, pero hubo {results.errors} errores.
+                    Se importaron {results.success} registros correctamente,
+                    pero hubo {results.errors} errores.
                   </AlertDescription>
                 </Alert>
               )}
@@ -373,5 +419,5 @@ export default function ImportPhonesPage() {
         </Card>
       )}
     </div>
-  )
+  );
 }

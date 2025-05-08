@@ -19,7 +19,6 @@ import {
   ChevronRight,
   Database,
   BellIcon,
-  Activity,
   DollarSign,
   Wallet,
   CreditCard,
@@ -29,7 +28,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { UsinaLogo } from "@/components/usina-logo";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-import { GlobalFranchiseSelector } from "@/components/global-franchise-selector";
 import { NavFranchiseIndicator } from "@/components/nav-franchise-indicator";
 
 export default function DashboardLayout({
@@ -51,11 +49,6 @@ export default function DashboardLayout({
 
     if (!loading && !user) {
       router.push("/login");
-    }
-
-    // Abrir automáticamente el menú de publicidad si estamos en alguna de sus rutas
-    if (pathname?.includes("/dashboard/advertising")) {
-      setAdvertisingOpen(true);
     }
 
     // Abrir automáticamente el menú de admin si estamos en alguna de sus rutas
@@ -102,6 +95,8 @@ export default function DashboardLayout({
     if (pathname?.includes("/dashboard/advertising/ads")) return "Anuncios";
     if (pathname?.includes("/dashboard/advertising/register-activity"))
       return "Registrar Actividad";
+    if (pathname?.includes("/dashboard/advertising/apis")) return "APIs";
+    if (pathname?.includes("/dashboard/advertising")) return "Publicidad";
     if (pathname?.includes("/dashboard/personnel")) return "Personal";
     if (pathname?.includes("/dashboard/reports")) return "Reportes";
     if (pathname?.includes("/dashboard/settings")) return "Configuración";
@@ -198,119 +193,16 @@ export default function DashboardLayout({
               </Link>
             </li>
             <li>
-              <button
-                onClick={() => setAdvertisingOpen(!advertisingOpen)}
-                className={`usina-sidebar-nav-item w-full justify-between ${
+              <Link
+                href="/dashboard/advertising"
+                className={`usina-sidebar-nav-item ${
                   pathname?.includes("/dashboard/advertising") ? "active" : ""
                 }`}
               >
-                <div className="flex items-center">
-                  <BarChart3 className="usina-sidebar-icon" />
-                  Publicidad
-                </div>
-                {advertisingOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-              {advertisingOpen && (
-                <ul className="pl-10 mt-1 space-y-1">
-                  <li>
-                    <Link
-                      href="/dashboard/advertising/portfolios"
-                      className={`block p-2 rounded-md text-sm ${
-                        pathname?.includes("/dashboard/advertising/portfolios")
-                          ? "text-primary font-medium"
-                          : "hover:bg-accent/50"
-                      }`}
-                    >
-                      Portfolios
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/dashboard/advertising/wallets"
-                      className={`block p-2 rounded-md text-sm ${
-                        pathname?.includes("/dashboard/advertising/wallets")
-                          ? "text-primary font-medium"
-                          : "hover:bg-accent/50"
-                      }`}
-                    >
-                      Cuentas Publicitarias
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/dashboard/advertising/business-managers"
-                      className={`block p-2 rounded-md text-sm ${
-                        pathname?.includes(
-                          "/dashboard/advertising/business-managers"
-                        )
-                          ? "text-primary font-medium"
-                          : "hover:bg-accent/50"
-                      }`}
-                    >
-                      Business Managers
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/dashboard/advertising/campaigns"
-                      className={`block p-2 rounded-md text-sm ${
-                        pathname?.includes("/dashboard/advertising/campaigns")
-                          ? "text-primary font-medium"
-                          : "hover:bg-accent/50"
-                      }`}
-                    >
-                      Campañas
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/dashboard/advertising/ad-sets"
-                      className={`block p-2 rounded-md text-sm ${
-                        pathname?.includes("/dashboard/advertising/ad-sets")
-                          ? "text-primary font-medium"
-                          : "hover:bg-accent/50"
-                      }`}
-                    >
-                      Conjuntos de Anuncios
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/dashboard/advertising/ads"
-                      className={`block p-2 rounded-md text-sm ${
-                        pathname?.includes("/dashboard/advertising/ads")
-                          ? "text-primary font-medium"
-                          : "hover:bg-accent/50"
-                      }`}
-                    >
-                      Anuncios
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/dashboard/advertising/register-activity"
-                      className={`block p-2 rounded-md text-sm ${
-                        pathname?.includes(
-                          "/dashboard/advertising/register-activity"
-                        )
-                          ? "text-primary font-medium"
-                          : "hover:bg-accent/50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1">
-                        <Activity className="h-4 w-4" />
-                        Registrar Actividad
-                      </div>
-                    </Link>
-                  </li>
-                </ul>
-              )}
+                <BarChart3 className="usina-sidebar-icon" />
+                Publicidad
+              </Link>
             </li>
-            {/* Nuevo menú de Finanzas */}
             <li>
               <button
                 onClick={() => setFinancesOpen(!financesOpen)}

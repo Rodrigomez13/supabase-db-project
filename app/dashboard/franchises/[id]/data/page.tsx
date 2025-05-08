@@ -1,33 +1,52 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { AlertCircle, Download, Phone, MessageSquare, CreditCard } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertCircle,
+  Download,
+  Phone,
+  MessageSquare,
+  CreditCard,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function FranchiseDataPage() {
-  const params = useParams()
-  const franchiseId = params.id as string
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const params = useParams();
+  const franchiseId = params.id as string;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>({
     phones: [],
     conversions: [],
     finances: [],
-  })
+  });
 
   useEffect(() => {
     async function fetchData() {
       try {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
         // Fetch phone data
         const { data: phoneData, error: phoneError } = await supabase
@@ -35,19 +54,26 @@ export default function FranchiseDataPage() {
           .select("*")
           .eq("franchise_id", franchiseId)
           .order("date", { ascending: false })
-          .limit(100)
+          .limit(100);
 
-        if (phoneError) throw new Error(`Error al cargar datos de teléfonos: ${phoneError.message}`)
+        if (phoneError)
+          throw new Error(
+            `Error al cargar datos de teléfonos: ${phoneError.message}`
+          );
 
         // Fetch conversions data
-        const { data: conversionsData, error: conversionsError } = await supabase
-          .from("conversions")
-          .select("*")
-          .eq("franchise_id", franchiseId)
-          .order("created_at", { ascending: false })
-          .limit(100)
+        const { data: conversionsData, error: conversionsError } =
+          await supabase
+            .from("conversions")
+            .select("*")
+            .eq("franchise_id", franchiseId)
+            .order("created_at", { ascending: false })
+            .limit(100);
 
-        if (conversionsError) throw new Error(`Error al cargar conversiones: ${conversionsError.message}`)
+        if (conversionsError)
+          throw new Error(
+            `Error al cargar conversiones: ${conversionsError.message}`
+          );
 
         // Fetch financial data (example query - adjust based on your schema)
         const { data: financeData, error: financeError } = await supabase
@@ -55,33 +81,36 @@ export default function FranchiseDataPage() {
           .select("*")
           .eq("franchise_id", franchiseId)
           .order("date", { ascending: false })
-          .limit(100)
+          .limit(100);
 
-        if (financeError) throw new Error(`Error al cargar datos financieros: ${financeError.message}`)
+        if (financeError)
+          throw new Error(
+            `Error al cargar datos financieros: ${financeError.message}`
+          );
 
         setData({
           phones: phoneData || [],
           conversions: conversionsData || [],
           finances: financeData || [],
-        })
+        });
       } catch (err: any) {
-        console.error("Error fetching data:", err)
-        setError(err.message || "Error al cargar los datos")
+        console.error("Error fetching data:", err);
+        setError(err.message || "Error al cargar los datos");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
     if (franchiseId) {
-      fetchData()
+      fetchData();
     }
-  }, [franchiseId])
+  }, [franchiseId]);
 
   const downloadCSV = (dataArray: any[], filename: string) => {
-    if (!dataArray.length) return
+    if (!dataArray.length) return;
 
     // Get headers from first object
-    const headers = Object.keys(dataArray[0])
+    const headers = Object.keys(dataArray[0]);
 
     // Create CSV content
     const csvContent = [
@@ -90,23 +119,23 @@ export default function FranchiseDataPage() {
         headers
           .map((header) => {
             // Handle values that might contain commas or quotes
-            const value = row[header] === null ? "" : String(row[header])
-            return `"${value.replace(/"/g, '""')}"`
+            const value = row[header] === null ? "" : String(row[header]);
+            return `"${value.replace(/"/g, '""')}"`;
           })
-          .join(","),
+          .join(",")
       ),
-    ].join("\n")
+    ].join("\n");
 
     // Create download link
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.setAttribute("download", `${filename}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${filename}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) {
     return (
@@ -115,7 +144,7 @@ export default function FranchiseDataPage() {
         <Skeleton className="h-10 w-full max-w-md mb-6" />
         <Skeleton className="h-[500px] w-full rounded-lg" />
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -127,7 +156,7 @@ export default function FranchiseDataPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
 
   return (
@@ -155,7 +184,9 @@ export default function FranchiseDataPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Datos de Teléfonos</CardTitle>
-                <CardDescription>Registros de llamadas y métricas telefónicas</CardDescription>
+                <CardDescription>
+                  Registros de llamadas y métricas telefónicas
+                </CardDescription>
               </div>
               <Button
                 variant="outline"
@@ -168,7 +199,9 @@ export default function FranchiseDataPage() {
             </CardHeader>
             <CardContent>
               {data.phones.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">No hay datos de teléfonos disponibles</div>
+                <div className="text-center py-6 text-muted-foreground">
+                  No hay datos de teléfonos disponibles
+                </div>
               ) : (
                 <div className="rounded-md border">
                   <Table>
@@ -184,13 +217,17 @@ export default function FranchiseDataPage() {
                     <TableBody>
                       {data.phones.map((item: any, index: number) => (
                         <TableRow key={item.id || index}>
-                          <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            {new Date(item.date).toLocaleDateString()}
+                          </TableCell>
                           <TableCell>{item.phone_number || "N/A"}</TableCell>
                           <TableCell>{item.calls || 0}</TableCell>
                           <TableCell>{item.duration || 0}</TableCell>
                           <TableCell>
-                            <Badge variant={item.active ? "default" : "secondary"}>
-                              {item.active ? "Activo" : "Inactivo"}
+                            <Badge
+                              variant={item.Activo ? "default" : "secondary"}
+                            >
+                              {item.Activo ? "Activo" : "InActivo"}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -208,11 +245,15 @@ export default function FranchiseDataPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Datos de Conversiones</CardTitle>
-                <CardDescription>Registros de conversiones y leads</CardDescription>
+                <CardDescription>
+                  Registros de conversiones y leads
+                </CardDescription>
               </div>
               <Button
                 variant="outline"
-                onClick={() => downloadCSV(data.conversions, "conversiones-franquicia")}
+                onClick={() =>
+                  downloadCSV(data.conversions, "conversiones-franquicia")
+                }
                 disabled={data.conversions.length === 0}
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -221,7 +262,9 @@ export default function FranchiseDataPage() {
             </CardHeader>
             <CardContent>
               {data.conversions.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">No hay datos de conversiones disponibles</div>
+                <div className="text-center py-6 text-muted-foreground">
+                  No hay datos de conversiones disponibles
+                </div>
               ) : (
                 <div className="rounded-md border">
                   <Table>
@@ -237,12 +280,20 @@ export default function FranchiseDataPage() {
                     <TableBody>
                       {data.conversions.map((item: any, index: number) => (
                         <TableRow key={item.id || index}>
-                          <TableCell>{new Date(item.created_at).toLocaleString()}</TableCell>
+                          <TableCell>
+                            {new Date(item.created_at).toLocaleString()}
+                          </TableCell>
                           <TableCell>{item.type || "N/A"}</TableCell>
                           <TableCell>${item.value || "0.00"}</TableCell>
                           <TableCell>{item.source || "N/A"}</TableCell>
                           <TableCell>
-                            <Badge variant={item.status === "completed" ? "default" : "secondary"}>
+                            <Badge
+                              variant={
+                                item.status === "completed"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
                               {item.status || "Pendiente"}
                             </Badge>
                           </TableCell>
@@ -261,11 +312,15 @@ export default function FranchiseDataPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Datos Financieros</CardTitle>
-                <CardDescription>Registros de gastos e ingresos</CardDescription>
+                <CardDescription>
+                  Registros de gastos e ingresos
+                </CardDescription>
               </div>
               <Button
                 variant="outline"
-                onClick={() => downloadCSV(data.finances, "finanzas-franquicia")}
+                onClick={() =>
+                  downloadCSV(data.finances, "finanzas-franquicia")
+                }
                 disabled={data.finances.length === 0}
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -274,7 +329,9 @@ export default function FranchiseDataPage() {
             </CardHeader>
             <CardContent>
               {data.finances.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">No hay datos financieros disponibles</div>
+                <div className="text-center py-6 text-muted-foreground">
+                  No hay datos financieros disponibles
+                </div>
               ) : (
                 <div className="rounded-md border">
                   <Table>
@@ -290,7 +347,9 @@ export default function FranchiseDataPage() {
                     <TableBody>
                       {data.finances.map((item: any, index: number) => (
                         <TableRow key={item.id || index}>
-                          <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            {new Date(item.date).toLocaleDateString()}
+                          </TableCell>
                           <TableCell>{item.server_name || "N/A"}</TableCell>
                           <TableCell>${item.spend || "0.00"}</TableCell>
                           <TableCell>{item.impressions || 0}</TableCell>
@@ -306,5 +365,5 @@ export default function FranchiseDataPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

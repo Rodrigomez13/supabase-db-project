@@ -1,16 +1,39 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { PlusIcon, Search, Download, Upload, Phone, Check, X, Pencil, Trash2, AlertCircle } from "lucide-react"
-import { safeQuery, safeInsert, safeUpdate, safeDelete } from "@/lib/safe-query"
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  PlusIcon,
+  Search,
+  Download,
+  Upload,
+  Phone,
+  Check,
+  X,
+  Pencil,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
+import {
+  safeQuery,
+  safeInsert,
+  safeUpdate,
+  safeDelete,
+} from "@/lib/safe-query";
 import {
   Dialog,
   DialogContent,
@@ -18,240 +41,253 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useToast } from "@/hooks/use-toast"
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 interface FranchisePhone {
-  id: string
-  franchise_id: string
-  phone_number: string
-  order_number: number
-  is_active: boolean
-  daily_goal: number
-  notes?: string
-  category?: string
-  tags?: string[]
-  created_at: string
-  updated_at: string
+  id: string;
+  franchise_id: string;
+  phone_number: string;
+  order_number: number;
+  is_Activo: boolean;
+  daily_goal: number;
+  notes?: string;
+  category?: string;
+  tags?: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export default function FranchisePhonesPage() {
-  const params = useParams()
-  const franchiseId = params.id as string
-  const [phones, setPhones] = useState<FranchisePhone[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [search, setSearch] = useState<string>("")
-  const [filter, setFilter] = useState<"all" | "active" | "inactive">("all")
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [currentPhone, setCurrentPhone] = useState<FranchisePhone | null>(null)
+  const params = useParams();
+  const franchiseId = params.id as string;
+  const [phones, setPhones] = useState<FranchisePhone[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [search, setSearch] = useState<string>("");
+  const [filter, setFilter] = useState<"all" | "Activo" | "inActivo">("all");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentPhone, setCurrentPhone] = useState<FranchisePhone | null>(null);
   const [formData, setFormData] = useState({
     phone_number: "",
     order_number: 0,
-    is_active: true,
+    is_Activo: true,
     daily_goal: 0,
     notes: "",
     category: "",
     tags: [] as string[],
-  })
-  const [error, setError] = useState<string | null>(null)
-  const [tagInput, setTagInput] = useState("")
-  const { toast } = useToast()
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
-    loadPhones()
-  }, [franchiseId])
+    loadPhones();
+  }, [franchiseId]);
 
   const loadPhones = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const data = await safeQuery<FranchisePhone>("franchise_phones", {
         where: { franchise_id: franchiseId },
         orderBy: { column: "order_number", ascending: true },
-      })
-      setPhones(data)
+      });
+      setPhones(data);
     } catch (error) {
-      console.error("Error loading franchise phones:", error)
-      setPhones([])
+      console.error("Error loading franchise phones:", error);
+      setPhones([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Filtrar teléfonos según búsqueda y filtro de estado
   const filteredPhones = phones.filter((phone) => {
     const matchesSearch =
       search === "" ||
       phone.phone_number.includes(search) ||
-      (phone.notes && phone.notes.toLowerCase().includes(search.toLowerCase())) ||
-      (phone.category && phone.category.toLowerCase().includes(search.toLowerCase())) ||
-      (phone.tags && phone.tags.some((tag) => tag.toLowerCase().includes(search.toLowerCase())))
+      (phone.notes &&
+        phone.notes.toLowerCase().includes(search.toLowerCase())) ||
+      (phone.category &&
+        phone.category.toLowerCase().includes(search.toLowerCase())) ||
+      (phone.tags &&
+        phone.tags.some((tag) =>
+          tag.toLowerCase().includes(search.toLowerCase())
+        ));
 
     const matchesFilter =
-      filter === "all" || (filter === "active" && phone.is_active) || (filter === "inactive" && !phone.is_active)
+      filter === "all" ||
+      (filter === "Activo" && phone.is_Activo) ||
+      (filter === "inActivo" && !phone.is_Activo);
 
-    return matchesSearch && matchesFilter
-  })
+    return matchesSearch && matchesFilter;
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
-    })
-  }
+    });
+  };
 
   const handleSwitchChange = (checked: boolean) => {
     setFormData({
       ...formData,
-      is_active: checked,
-    })
-  }
+      is_Activo: checked,
+    });
+  };
 
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
       setFormData({
         ...formData,
         tags: [...formData.tags, tagInput.trim()],
-      })
-      setTagInput("")
+      });
+      setTagInput("");
     }
-  }
+  };
 
   const handleRemoveTag = (tag: string) => {
     setFormData({
       ...formData,
       tags: formData.tags.filter((t) => t !== tag),
-    })
-  }
+    });
+  };
 
   const resetForm = () => {
     setFormData({
       phone_number: "",
       order_number: phones.length + 1,
-      is_active: true,
+      is_Activo: true,
       daily_goal: 0,
       notes: "",
       category: "",
       tags: [],
-    })
-    setError(null)
-  }
+    });
+    setError(null);
+  };
 
   const openAddDialog = () => {
-    resetForm()
-    setIsAddDialogOpen(true)
-  }
+    resetForm();
+    setIsAddDialogOpen(true);
+  };
 
   const openEditDialog = (phone: FranchisePhone) => {
-    setCurrentPhone(phone)
+    setCurrentPhone(phone);
     setFormData({
       phone_number: phone.phone_number,
       order_number: phone.order_number,
-      is_active: phone.is_active,
+      is_Activo: phone.is_Activo,
       daily_goal: phone.daily_goal,
       notes: phone.notes || "",
       category: phone.category || "",
       tags: phone.tags || [],
-    })
-    setIsEditDialogOpen(true)
-  }
+    });
+    setIsEditDialogOpen(true);
+  };
 
   const openDeleteDialog = (phone: FranchisePhone) => {
-    setCurrentPhone(phone)
-    setIsDeleteDialogOpen(true)
-  }
+    setCurrentPhone(phone);
+    setIsDeleteDialogOpen(true);
+  };
 
   const handleAddPhone = async () => {
     try {
-      setError(null)
+      setError(null);
 
       if (!formData.phone_number) {
-        setError("El número de teléfono es obligatorio")
-        return
+        setError("El número de teléfono es obligatorio");
+        return;
       }
 
       const newPhone = {
         franchise_id: franchiseId,
         ...formData,
-      }
+      };
 
-      const result = await safeInsert("franchise_phones", newPhone)
+      const result = await safeInsert("franchise_phones", newPhone);
 
       if (result.success) {
         toast({
           title: "Teléfono agregado",
           description: "El teléfono ha sido agregado correctamente",
-        })
-        setIsAddDialogOpen(false)
-        loadPhones()
+        });
+        setIsAddDialogOpen(false);
+        loadPhones();
       } else {
-        setError(result.error || "Error al agregar el teléfono")
+        setError(result.error || "Error al agregar el teléfono");
       }
     } catch (error: any) {
-      setError(error.message || "Error al agregar el teléfono")
+      setError(error.message || "Error al agregar el teléfono");
     }
-  }
+  };
 
   const handleUpdatePhone = async () => {
     try {
-      setError(null)
+      setError(null);
 
-      if (!currentPhone) return
+      if (!currentPhone) return;
 
       if (!formData.phone_number) {
-        setError("El número de teléfono es obligatorio")
-        return
+        setError("El número de teléfono es obligatorio");
+        return;
       }
 
-      const result = await safeUpdate("franchise_phones", currentPhone.id, formData)
+      const result = await safeUpdate(
+        "franchise_phones",
+        currentPhone.id,
+        formData
+      );
 
       if (result.success) {
         toast({
           title: "Teléfono actualizado",
           description: "El teléfono ha sido actualizado correctamente",
-        })
-        setIsEditDialogOpen(false)
-        loadPhones()
+        });
+        setIsEditDialogOpen(false);
+        loadPhones();
       } else {
-        setError(result.error || "Error al actualizar el teléfono")
+        setError(result.error || "Error al actualizar el teléfono");
       }
     } catch (error: any) {
-      setError(error.message || "Error al actualizar el teléfono")
+      setError(error.message || "Error al actualizar el teléfono");
     }
-  }
+  };
 
   const handleDeletePhone = async () => {
     try {
-      if (!currentPhone) return
+      if (!currentPhone) return;
 
-      const result = await safeDelete("franchise_phones", currentPhone.id)
+      const result = await safeDelete("franchise_phones", currentPhone.id);
 
       if (result.success) {
         toast({
           title: "Teléfono eliminado",
           description: "El teléfono ha sido eliminado correctamente",
-        })
-        setIsDeleteDialogOpen(false)
-        loadPhones()
+        });
+        setIsDeleteDialogOpen(false);
+        loadPhones();
       } else {
-        setError(result.error || "Error al eliminar el teléfono")
+        setError(result.error || "Error al eliminar el teléfono");
       }
     } catch (error: any) {
-      setError(error.message || "Error al eliminar el teléfono")
+      setError(error.message || "Error al eliminar el teléfono");
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-bold">Teléfonos</h2>
-          <p className="text-muted-foreground">Gestiona los números telefónicos asignados a esta franquicia</p>
+          <p className="text-muted-foreground">
+            Gestiona los números telefónicos asignados a esta franquicia
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={openAddDialog}>
@@ -287,22 +323,26 @@ export default function FranchisePhonesPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Button variant={filter === "all" ? "default" : "outline"} size="sm" onClick={() => setFilter("all")}>
+              <Button
+                variant={filter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter("all")}
+              >
                 Todos
               </Button>
               <Button
-                variant={filter === "active" ? "default" : "outline"}
+                variant={filter === "Activo" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setFilter("active")}
+                onClick={() => setFilter("Activo")}
               >
                 Activos
               </Button>
               <Button
-                variant={filter === "inactive" ? "default" : "outline"}
+                variant={filter === "inActivo" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setFilter("inactive")}
+                onClick={() => setFilter("inActivo")}
               >
-                Inactivos
+                InActivos
               </Button>
             </div>
           </div>
@@ -344,18 +384,26 @@ export default function FranchisePhonesPage() {
                 <TableBody>
                   {filteredPhones.map((phone) => (
                     <TableRow key={phone.id}>
-                      <TableCell className="font-medium">{phone.order_number}</TableCell>
+                      <TableCell className="font-medium">
+                        {phone.order_number}
+                      </TableCell>
                       <TableCell>{phone.phone_number}</TableCell>
                       <TableCell>
-                        {phone.is_active ? (
-                          <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
+                        {phone.is_Activo ? (
+                          <Badge
+                            variant="default"
+                            className="bg-green-100 text-green-800 hover:bg-green-200"
+                          >
                             <Check className="h-3.5 w-3.5 mr-1" />
                             Activo
                           </Badge>
                         ) : (
-                          <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-200">
+                          <Badge
+                            variant="destructive"
+                            className="bg-red-100 text-red-800 hover:bg-red-200"
+                          >
                             <X className="h-3.5 w-3.5 mr-1" />
-                            Inactivo
+                            InActivo
                           </Badge>
                         )}
                       </TableCell>
@@ -365,29 +413,45 @@ export default function FranchisePhonesPage() {
                             {phone.category}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground">Sin categoría</span>
+                          <span className="text-muted-foreground">
+                            Sin categoría
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {phone.tags && phone.tags.length > 0 ? (
                             phone.tags.map((tag, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">
+                              <Badge
+                                key={i}
+                                variant="secondary"
+                                className="text-xs"
+                              >
                                 {tag}
                               </Badge>
                             ))
                           ) : (
-                            <span className="text-muted-foreground">Sin etiquetas</span>
+                            <span className="text-muted-foreground">
+                              Sin etiquetas
+                            </span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>{phone.daily_goal || 0}</TableCell>
                       <TableCell className="max-w-[200px] truncate">
-                        {phone.notes || <span className="text-muted-foreground">Sin notas</span>}
+                        {phone.notes || (
+                          <span className="text-muted-foreground">
+                            Sin notas
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button size="icon" variant="outline" onClick={() => openEditDialog(phone)}>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => openEditDialog(phone)}
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
@@ -414,7 +478,9 @@ export default function FranchisePhonesPage() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Agregar Teléfono</DialogTitle>
-            <DialogDescription>Agrega un nuevo número telefónico a esta franquicia.</DialogDescription>
+            <DialogDescription>
+              Agrega un nuevo número telefónico a esta franquicia.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -444,11 +510,15 @@ export default function FranchisePhonesPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="is_active" className="text-right">
+              <Label htmlFor="is_Activo" className="text-right">
                 Activo
               </Label>
               <div className="col-span-3">
-                <Switch id="is_active" checked={formData.is_active} onCheckedChange={handleSwitchChange} />
+                <Switch
+                  id="is_Activo"
+                  checked={formData.is_Activo}
+                  onCheckedChange={handleSwitchChange}
+                />
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -490,8 +560,8 @@ export default function FranchisePhonesPage() {
                     placeholder="Agregar etiqueta"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        e.preventDefault()
-                        handleAddTag()
+                        e.preventDefault();
+                        handleAddTag();
                       }
                     }}
                   />
@@ -501,9 +571,16 @@ export default function FranchisePhonesPage() {
                 </div>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {formData.tags.map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
                       {tag}
-                      <X className="h-3 w-3 cursor-pointer" onClick={() => handleRemoveTag(tag)} />
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => handleRemoveTag(tag)}
+                      />
                     </Badge>
                   ))}
                 </div>
@@ -543,7 +620,9 @@ export default function FranchisePhonesPage() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Editar Teléfono</DialogTitle>
-            <DialogDescription>Modifica la información del teléfono seleccionado.</DialogDescription>
+            <DialogDescription>
+              Modifica la información del teléfono seleccionado.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -572,11 +651,15 @@ export default function FranchisePhonesPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit_is_active" className="text-right">
+              <Label htmlFor="edit_is_Activo" className="text-right">
                 Activo
               </Label>
               <div className="col-span-3">
-                <Switch id="edit_is_active" checked={formData.is_active} onCheckedChange={handleSwitchChange} />
+                <Switch
+                  id="edit_is_Activo"
+                  checked={formData.is_Activo}
+                  onCheckedChange={handleSwitchChange}
+                />
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -617,8 +700,8 @@ export default function FranchisePhonesPage() {
                     placeholder="Agregar etiqueta"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        e.preventDefault()
-                        handleAddTag()
+                        e.preventDefault();
+                        handleAddTag();
                       }
                     }}
                   />
@@ -628,9 +711,16 @@ export default function FranchisePhonesPage() {
                 </div>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {formData.tags.map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
                       {tag}
-                      <X className="h-3 w-3 cursor-pointer" onClick={() => handleRemoveTag(tag)} />
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => handleRemoveTag(tag)}
+                      />
                     </Badge>
                   ))}
                 </div>
@@ -656,7 +746,10 @@ export default function FranchisePhonesPage() {
             </Alert>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               Cancelar
             </Button>
             <Button onClick={handleUpdatePhone}>Guardar Cambios</Button>
@@ -670,14 +763,15 @@ export default function FranchisePhonesPage() {
           <DialogHeader>
             <DialogTitle>Confirmar Eliminación</DialogTitle>
             <DialogDescription>
-              ¿Estás seguro de que deseas eliminar este teléfono? Esta acción no se puede deshacer.
+              ¿Estás seguro de que deseas eliminar este teléfono? Esta acción no
+              se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           {currentPhone && (
             <div className="py-4">
               <p className="font-medium">Número: {currentPhone.phone_number}</p>
               <p className="text-muted-foreground text-sm mt-1">
-                {currentPhone.is_active ? "Activo" : "Inactivo"}
+                {currentPhone.is_Activo ? "Activo" : "InActivo"}
                 {currentPhone.category ? ` • ${currentPhone.category}` : ""}
               </p>
             </div>
@@ -689,7 +783,10 @@ export default function FranchisePhonesPage() {
             </Alert>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleDeletePhone}>
@@ -699,5 +796,5 @@ export default function FranchisePhonesPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

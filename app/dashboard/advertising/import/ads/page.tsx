@@ -1,556 +1,624 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Progress } from "@/components/ui/progress"
-import { Upload, AlertCircle, Info, Download } from "lucide-react"
-import { supabase } from "@/lib/supabase"
-import { toast } from "@/components/ui/use-toast"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ArrowLeft,
+  Download,
+  Upload,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
-interface AdData {
-  name: string
-  platform: string
-  ad_id: string
-  ad_set_id: string
-  campaign_id: string
-  business_manager_id: string
-  portfolio_id?: string
-  account_id?: string
-  status: string
-  spent?: number
-  leads?: number
-  conversions?: number
+interface CsvRow {
+  ad_name: string;
+  ad_id: string;
+  creative_type: string;
+  status: string;
+  adset_name: string;
+  adset_id: string;
+  campaign_name: string;
+  campaign_id: string;
+  objective: string;
+  bm_name: string;
+  bm_id: string;
+  portfolio_name: string;
+}
+
+interface ImportResult {
+  success: boolean;
+  message: string;
+  details?: string;
 }
 
 export default function ImportAdsPage() {
-  const [file, setFile] = useState<File | null>(null)
-  const [previewData, setPreviewData] = useState<AdData[]>([])
-  const [importing, setImporting] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [results, setResults] = useState<{
-    total: number
-    success: number
-    errors: number
-    errorMessages: string[]
-  }>({
-    total: 0,
-    success: 0,
-    errors: 0,
-    errorMessages: [],
-  })
-  const [activeTab, setActiveTab] = useState("upload")
+  const [file, setFile] = useState<File | null>(null);
+  const [csvData, setCsvData] = useState<CsvRow[]>([]);
+  const [previewData, setPreviewData] = useState<CsvRow[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<ImportResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (!selectedFile) return
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
 
-    if (selectedFile.type !== "text/csv" && !selectedFile.name.endsWith(".csv")) {
-      toast({
-        title: "Formato no válido",
-        description: "Por favor selecciona un archivo CSV",
-        variant: "destructive",
-      })
-      return
-    }
+    setFile(selectedFile);
+    setError(null);
 
-    setFile(selectedFile)
-    parseCSV(selectedFile)
-  }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const csv = event.target?.result as string;
+        const lines = csv.split("\n");
+        const headers = lines[0].split(",").map((h) => h.trim());
 
-  const parseCSV = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const text = e.target?.result as string
-      const lines = text.split("\n")
-      const headers = lines[0].split(",").map((h) => h.trim())
+        // Validar encabezados
+        const requiredHeaders = [
+          "ad_name",
+          "ad_id",
+          "creative_type",
+          "status",
+          "adset_name",
+          "adset_id",
+          "campaign_name",
+          "campaign_id",
+          "objective",
+          "bm_name",
+          "bm_id",
+          "portfolio_name",
+        ];
 
-      // Verificar que el CSV tiene las columnas requeridas
-      const requiredColumns = ["name", "platform", "ad_id", "ad_set_id", "campaign_id", "business_manager_id", "status"]
-      const missingColumns = requiredColumns.filter((col) => !headers.includes(col))
+        const missingHeaders = requiredHeaders.filter(
+          (h) => !headers.includes(h)
+        );
+        if (missingHeaders.length > 0) {
+          setError(
+            `Faltan encabezados requeridos: ${missingHeaders.join(", ")}`
+          );
+          return;
+        }
 
-      if (missingColumns.length > 0) {
-        toast({
-          title: "Formato de CSV incorrecto",
-          description: `Faltan columnas requeridas: ${missingColumns.join(", ")}`,
-          variant: "destructive",
-        })
-        setFile(null)
-        return
-      }
+        const parsedData: CsvRow[] = [];
 
-      // Parsear los datos (primeras 5 filas para preview)
-      const previewRows = lines.slice(1, 6).filter((line) => line.trim() !== "")
-      const parsedData = previewRows.map((line) => {
-        const values = line.split(",").map((v) => v.trim())
-        const row: Record<string, any> = {}
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
 
-        headers.forEach((header, index) => {
-          if (["spent", "leads", "conversions"].includes(header)) {
-            row[header] = values[index] ? Number.parseFloat(values[index]) : 0
-          } else {
-            row[header] = values[index] || ""
-          }
-        })
-
-        return row as AdData
-      })
-
-      setPreviewData(parsedData)
-    }
-
-    reader.readAsText(file)
-  }
-
-  const handleImport = async () => {
-    if (!file) return
-
-    setImporting(true)
-    setProgress(0)
-    setResults({
-      total: 0,
-      success: 0,
-      errors: 0,
-      errorMessages: [],
-    })
-
-    try {
-      const reader = new FileReader()
-
-      reader.onload = async (e) => {
-        const text = e.target?.result as string
-        const lines = text.split("\n")
-        const headers = lines[0].split(",").map((h) => h.trim())
-
-        // Filtrar líneas vacías
-        const dataRows = lines.slice(1).filter((line) => line.trim() !== "")
-        const total = dataRows.length
-        let success = 0
-        let errors = 0
-        const errorMessages: string[] = []
-
-        for (let i = 0; i < dataRows.length; i++) {
-          const line = dataRows[i]
-          const values = line.split(",").map((v) => v.trim())
-          const row: Record<string, any> = {}
+          const values = lines[i].split(",").map((v) => v.trim());
+          const row: any = {};
 
           headers.forEach((header, index) => {
-            if (["spent", "leads", "conversions"].includes(header)) {
-              row[header] = values[index] ? Number.parseFloat(values[index]) : 0
+            row[header] = values[index] || "";
+          });
+
+          parsedData.push(row as CsvRow);
+        }
+
+        setCsvData(parsedData);
+        setPreviewData(parsedData.slice(0, 5)); // Mostrar solo las primeras 5 filas
+      } catch (err) {
+        console.error("Error parsing CSV:", err);
+        setError(
+          "Error al procesar el archivo CSV. Asegúrate de que el formato sea correcto."
+        );
+      }
+    };
+
+    reader.readAsText(selectedFile);
+  };
+
+  const handleImport = async () => {
+    if (!csvData.length) {
+      setError("No hay datos para importar");
+      return;
+    }
+
+    setImporting(true);
+    setProgress(0);
+    setResults([]);
+    setError(null);
+    setSuccess(null);
+
+    const importResults: ImportResult[] = [];
+    let successCount = 0;
+
+    try {
+      // Procesar cada fila
+      for (let i = 0; i < csvData.length; i++) {
+        const row = csvData[i];
+        setProgress(Math.round(((i + 1) / csvData.length) * 100));
+
+        try {
+          // 1. Verificar/crear portfolio
+          let portfolioId = null;
+          if (row.portfolio_name) {
+            const { data: portfolios } = await supabase
+              .from("portfolios")
+              .select("id")
+              .eq("name", row.portfolio_name)
+              .limit(1);
+
+            if (portfolios && portfolios.length > 0) {
+              portfolioId = portfolios[0].id;
             } else {
-              row[header] = values[index] || ""
-            }
-          })
+              const { data: newPortfolio } = await supabase
+                .from("portfolios")
+                .insert({
+                  name: row.portfolio_name,
+                  status: "active",
+                })
+                .select("id")
+                .single();
 
-          try {
-            // Verificar campos requeridos
-            const requiredFields = [
-              "name",
-              "platform",
-              "ad_id",
-              "ad_set_id",
-              "campaign_id",
-              "business_manager_id",
-              "status",
-            ]
-            for (const field of requiredFields) {
-              if (!row[field]) {
-                throw new Error(`Fila ${i + 2}: Campo ${field} vacío`)
-              }
+              portfolioId = newPortfolio?.id;
             }
+          }
 
-            // Verificar que el business manager existe
-            const { data: bm, error: bmError } = await supabase
+          // 2. Verificar/crear business manager
+          let bmId = null;
+          if (row.bm_name && row.bm_id) {
+            const { data: bms } = await supabase
               .from("business_managers")
               .select("id")
-              .eq("id", row.business_manager_id)
-              .single()
+              .eq("bm_id", row.bm_id)
+              .limit(1);
 
-            if (bmError || !bm) {
-              throw new Error(`Fila ${i + 2}: El Business Manager con ID ${row.business_manager_id} no existe`)
+            if (bms && bms.length > 0) {
+              bmId = bms[0].id;
+            } else {
+              const { data: newBM } = await supabase
+                .from("business_managers")
+                .insert({
+                  name: row.bm_name,
+                  bm_id: row.bm_id,
+                  status: "active",
+                  portfolio_id: portfolioId,
+                })
+                .select("id")
+                .single();
+
+              bmId = newBM?.id;
             }
+          }
 
-            // Verificar si el anuncio ya existe
-            const { data: existingAd, error: existingAdError } = await supabase
+          // 3. Verificar/crear campaña
+          let campaignId = null;
+          if (row.campaign_name && row.campaign_id) {
+            const { data: campaigns } = await supabase
+              .from("campaigns")
+              .select("id")
+              .eq("campaign_id", row.campaign_id)
+              .limit(1);
+
+            if (campaigns && campaigns.length > 0) {
+              campaignId = campaigns[0].id;
+            } else {
+              const { data: newCampaign } = await supabase
+                .from("campaigns")
+                .insert({
+                  name: row.campaign_name,
+                  campaign_id: row.campaign_id,
+                  objective: row.objective || "CONVERSIONS",
+                  status: "active",
+                  business_manager_id: bmId,
+                })
+                .select("id")
+                .single();
+
+              campaignId = newCampaign?.id;
+            }
+          }
+
+          // 4. Verificar/crear conjunto de anuncios
+          let adSetId = null;
+          if (row.adset_name && row.adset_id) {
+            const { data: adSets } = await supabase
+              .from("ad_sets")
+              .select("id")
+              .eq("adset_id", row.adset_id)
+              .limit(1);
+
+            if (adSets && adSets.length > 0) {
+              adSetId = adSets[0].id;
+            } else {
+              const { data: newAdSet } = await supabase
+                .from("ad_sets")
+                .insert({
+                  name: row.adset_name,
+                  adset_id: row.adset_id,
+                  status: "active",
+                  campaign_id: campaignId,
+                })
+                .select("id")
+                .single();
+
+              adSetId = newAdSet?.id;
+            }
+          }
+
+          // 5. Verificar/crear anuncio
+          if (row.ad_name && row.ad_id) {
+            const { data: ads } = await supabase
               .from("ads")
               .select("id")
               .eq("ad_id", row.ad_id)
-              .single()
+              .limit(1);
 
-            let adId
-
-            if (existingAd) {
+            if (ads && ads.length > 0) {
               // Actualizar anuncio existente
-              const { error: updateError } = await supabase
+              await supabase
                 .from("ads")
                 .update({
-                  name: row.name,
-                  platform: row.platform,
-                  ad_set_id: row.ad_set_id,
-                  campaign_id: row.campaign_id,
-                  business_manager_id: row.business_manager_id,
-                  portfolio_id: row.portfolio_id || null,
-                  account_id: row.account_id || null,
-                  status: row.status,
-                  spent: row.spent || 0,
-                  leads: row.leads || 0,
-                  conversions: row.conversions || 0,
+                  name: row.ad_name,
+                  status: row.status || "active",
+                  creative_type: row.creative_type || "image",
+                  adset_id: adSetId,
                 })
-                .eq("id", existingAd.id)
+                .eq("id", ads[0].id);
 
-              if (updateError) {
-                throw new Error(`Fila ${i + 2}: Error al actualizar anuncio: ${updateError.message}`)
-              }
-
-              adId = existingAd.id
+              importResults.push({
+                success: true,
+                message: `Anuncio actualizado: ${row.ad_name}`,
+              });
             } else {
-              // Insertar nuevo anuncio
-              const { data: newAd, error: insertError } = await supabase
-                .from("ads")
-                .insert({
-                  name: row.name,
-                  platform: row.platform,
-                  ad_id: row.ad_id,
-                  ad_set_id: row.ad_set_id,
-                  campaign_id: row.campaign_id,
-                  business_manager_id: row.business_manager_id,
-                  portfolio_id: row.portfolio_id || null,
-                  account_id: row.account_id || null,
-                  status: row.status,
-                  spent: row.spent || 0,
-                  leads: row.leads || 0,
-                  conversions: row.conversions || 0,
-                })
-                .select("id")
-                .single()
+              // Crear nuevo anuncio
+              await supabase.from("ads").insert({
+                name: row.ad_name,
+                ad_id: row.ad_id,
+                status: row.status || "active",
+                creative_type: row.creative_type || "image",
+                adset_id: adSetId,
+              });
 
-              if (insertError) {
-                throw new Error(`Fila ${i + 2}: Error al insertar anuncio: ${insertError.message}`)
-              }
-
-              adId = newAd?.id
+              importResults.push({
+                success: true,
+                message: `Anuncio creado: ${row.ad_name}`,
+              });
             }
 
-            success++
-          } catch (error: any) {
-            errors++
-            errorMessages.push(error.message)
+            successCount++;
+          } else {
+            importResults.push({
+              success: false,
+              message: `Fila ${i + 1}: Faltan datos de anuncio obligatorios`,
+            });
           }
-
-          // Actualizar progreso
-          setProgress(Math.round(((i + 1) / total) * 100))
-
-          // Actualizar resultados parciales cada 10 filas
-          if ((i + 1) % 10 === 0 || i === dataRows.length - 1) {
-            setResults({
-              total,
-              success,
-              errors,
-              errorMessages,
-            })
-          }
-        }
-
-        // Actualizar resultados finales
-        setResults({
-          total,
-          success,
-          errors,
-          errorMessages,
-        })
-
-        if (errors === 0) {
-          toast({
-            title: "Importación completada",
-            description: `Se importaron ${success} anuncios correctamente`,
-          })
-        } else {
-          toast({
-            title: "Importación completada con errores",
-            description: `Se importaron ${success} de ${total} anuncios. Hubo ${errors} errores.`,
-            variant: "destructive",
-          })
+        } catch (err: any) {
+          console.error(`Error importing row ${i + 1}:`, err);
+          importResults.push({
+            success: false,
+            message: `Error en fila ${i + 1}`,
+            details: err.message,
+          });
         }
       }
 
-      reader.readAsText(file)
-    } catch (error: any) {
-      toast({
-        title: "Error en la importación",
-        description: error.message,
-        variant: "destructive",
-      })
+      setResults(importResults);
+      setSuccess(
+        `Importación completada. ${successCount} de ${csvData.length} anuncios importados correctamente.`
+      );
+    } catch (err: any) {
+      console.error("Error during import:", err);
+      setError(`Error durante la importación: ${err.message}`);
     } finally {
-      setImporting(false)
+      setImporting(false);
+      setProgress(100);
     }
-  }
+  };
+
+  const downloadTemplate = () => {
+    const headers =
+      "ad_name,ad_id,creative_type,status,adset_name,adset_id,campaign_name,campaign_id,objective,bm_name,bm_id,portfolio_name";
+    const sampleRow =
+      "Anuncio Ejemplo,123456789,image,active,Conjunto Ejemplo,987654321,Campaña Ejemplo,123123123,CONVERSIONS,BM Ejemplo,111222333,Portfolio Ejemplo";
+    const csvContent = `${headers}\n${sampleRow}`;
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "plantilla_anuncios.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Importar Anuncios</h1>
-        <p className="text-muted-foreground">Importa anuncios y sus relaciones desde un archivo CSV</p>
+      <div className="flex items-center space-x-4">
+        <Button variant="outline" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-usina-text-primary">
+            Importar Anuncios
+          </h1>
+          <p className="text-usina-text-secondary">
+            Importa anuncios y sus relaciones desde un archivo CSV
+          </p>
+        </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="upload">Subir Archivo</TabsTrigger>
-          <TabsTrigger value="template">Plantilla</TabsTrigger>
-          <TabsTrigger value="help">Ayuda</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="upload" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Seleccionar Archivo CSV</CardTitle>
-              <CardDescription>
-                El archivo debe contener las columnas requeridas para los anuncios y sus relaciones
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid w-full max-w-sm items-center gap-1.5">
-                  <Label htmlFor="csv-file">Archivo CSV</Label>
-                  <Input id="csv-file" type="file" accept=".csv" onChange={handleFileChange} disabled={importing} />
-                </div>
-
-                {previewData.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium mb-2">Vista previa</h3>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead>Plataforma</TableHead>
-                            <TableHead>ID Anuncio</TableHead>
-                            <TableHead>ID Conjunto</TableHead>
-                            <TableHead>ID Campaña</TableHead>
-                            <TableHead>ID BM</TableHead>
-                            <TableHead>Estado</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {previewData.map((row, index) => (
-                            <TableRow key={index}>
-                              <TableCell>{row.name}</TableCell>
-                              <TableCell>{row.platform}</TableCell>
-                              <TableCell>{row.ad_id}</TableCell>
-                              <TableCell>{row.ad_set_id}</TableCell>
-                              <TableCell>{row.campaign_id}</TableCell>
-                              <TableCell>{row.business_manager_id}</TableCell>
-                              <TableCell>{row.status}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Mostrando {previewData.length} de {file ? file.name : ""} (vista previa)
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="border-usina-card bg-background/5 lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-usina-text-primary">
+              Instrucciones
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <h3 className="font-medium text-usina-text-primary">
+                1. Descarga la plantilla
+              </h3>
+              <p className="text-sm text-usina-text-secondary">
+                Descarga nuestra plantilla CSV y complétala con tus datos de
+                anuncios.
+              </p>
               <Button
                 variant="outline"
-                onClick={() => {
-                  setFile(null)
-                  setPreviewData([])
-                }}
-                disabled={importing || !file}
+                className="w-full mt-2"
+                onClick={downloadTemplate}
               >
-                Cancelar
+                <Download className="h-4 w-4 mr-2" />
+                Descargar Plantilla
               </Button>
-              <Button onClick={handleImport} disabled={importing || !file}>
-                {importing ? (
-                  <>
-                    Importando...
-                    <Progress value={progress} className="w-20 ml-2 h-2" />
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Importar Datos
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
+            </div>
 
-          {(importing || results.total > 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Resultados de la Importación</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Total de registros</p>
-                      <p className="text-2xl font-bold">{results.total}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-green-600">Exitosos</p>
-                      <p className="text-2xl font-bold text-green-600">{results.success}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-red-600">Errores</p>
-                      <p className="text-2xl font-bold text-red-600">{results.errors}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Progreso</p>
-                      <Progress value={progress} className="w-40 h-2 mt-2" />
-                    </div>
-                  </div>
+            <div className="space-y-2">
+              <h3 className="font-medium text-usina-text-primary">
+                2. Completa los datos
+              </h3>
+              <p className="text-sm text-usina-text-secondary">
+                Asegúrate de incluir todos los campos requeridos:
+              </p>
+              <ul className="text-sm text-usina-text-secondary space-y-1">
+                <li>- ad_name: Nombre del anuncio</li>
+                <li>- ad_id: ID del anuncio</li>
+                <li>
+                  - creative_type: Tipo de creativo (image, video, carousel)
+                </li>
+                <li>- status: Estado del anuncio (active, paused)</li>
+                <li>- adset_name: Nombre del conjunto de anuncios</li>
+                <li>- adset_id: ID del conjunto de anuncios</li>
+                <li>- campaign_name: Nombre de la campaña</li>
+                <li>- campaign_id: ID de la campaña</li>
+                <li>- objective: Objetivo de la campaña</li>
+                <li>- bm_name: Nombre del Business Manager</li>
+                <li>- bm_id: ID del Business Manager</li>
+                <li>- portfolio_name: Nombre del Portfolio</li>
+              </ul>
+            </div>
 
-                  {results.errorMessages.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-lg font-medium mb-2">Errores</h3>
-                      <div className="max-h-60 overflow-y-auto border rounded-md p-4 bg-red-50">
-                        <ul className="space-y-2">
-                          {results.errorMessages.map((error, index) => (
-                            <li key={index} className="text-sm text-red-600">
-                              <AlertCircle className="inline-block mr-2 h-4 w-4" />
-                              {error}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+            <div className="space-y-2">
+              <h3 className="font-medium text-usina-text-primary">
+                3. Sube el archivo
+              </h3>
+              <p className="text-sm text-usina-text-secondary">
+                Sube tu archivo CSV y revisa la vista previa antes de importar.
+              </p>
+            </div>
 
-        <TabsContent value="template">
-          <Card>
-            <CardHeader>
-              <CardTitle>Plantilla CSV</CardTitle>
-              <CardDescription>Descarga una plantilla para importar anuncios</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>Formato requerido</AlertTitle>
-                  <AlertDescription>
-                    La plantilla incluye todas las columnas necesarias para importar anuncios correctamente.
-                  </AlertDescription>
-                </Alert>
+            <div className="space-y-2">
+              <h3 className="font-medium text-usina-text-primary">
+                4. Importa los datos
+              </h3>
+              <p className="text-sm text-usina-text-secondary">
+                Haz clic en "Importar" para comenzar el proceso. El sistema
+                creará automáticamente las relaciones necesarias.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="border rounded-md p-4">
-                  <h3 className="text-lg font-medium mb-2">Columnas requeridas</h3>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>
-                      <span className="font-medium">name</span> - Nombre del anuncio
-                    </li>
-                    <li>
-                      <span className="font-medium">platform</span> - Plataforma (Facebook, Instagram, etc.)
-                    </li>
-                    <li>
-                      <span className="font-medium">ad_id</span> - ID único del anuncio en la plataforma
-                    </li>
-                    <li>
-                      <span className="font-medium">ad_set_id</span> - ID del conjunto de anuncios
-                    </li>
-                    <li>
-                      <span className="font-medium">campaign_id</span> - ID de la campaña
-                    </li>
-                    <li>
-                      <span className="font-medium">business_manager_id</span> - ID del Business Manager
-                    </li>
-                    <li>
-                      <span className="font-medium">status</span> - Estado del anuncio (active, paused, etc.)
-                    </li>
-                  </ul>
-
-                  <h3 className="text-lg font-medium mt-4 mb-2">Columnas opcionales</h3>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>
-                      <span className="font-medium">portfolio_id</span> - ID del portfolio (si aplica)
-                    </li>
-                    <li>
-                      <span className="font-medium">account_id</span> - ID de la cuenta publicitaria
-                    </li>
-                    <li>
-                      <span className="font-medium">spent</span> - Gasto acumulado
-                    </li>
-                    <li>
-                      <span className="font-medium">leads</span> - Número de leads generados
-                    </li>
-                    <li>
-                      <span className="font-medium">conversions</span> - Número de conversiones
-                    </li>
-                  </ul>
-                </div>
-
-                <Button className="w-full">
-                  <Download className="mr-2 h-4 w-4" />
-                  Descargar Plantilla CSV
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="help">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ayuda para Importación</CardTitle>
-              <CardDescription>Guía para importar anuncios correctamente</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Preparación del CSV</h3>
-                  <p className="text-muted-foreground">
-                    Asegúrate de que tu archivo CSV tenga las columnas correctas y esté formateado adecuadamente:
+        <Card className="border-usina-card bg-background/5 lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-usina-text-primary">
+              Importar Anuncios
+            </CardTitle>
+            <CardDescription>
+              Sube un archivo CSV con los datos de tus anuncios
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-center w-full">
+              <label
+                htmlFor="csv-upload"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-background/10 border-usina-card/50 hover:bg-background/20"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <FileText className="w-10 h-10 mb-3 text-usina-text-secondary" />
+                  <p className="mb-2 text-sm text-usina-text-primary">
+                    <span className="font-semibold">Haz clic para subir</span> o
+                    arrastra y suelta
                   </p>
-                  <ul className="list-disc pl-5 mt-2 space-y-1 text-muted-foreground">
-                    <li>Usa comas como separadores</li>
-                    <li>Incluye una fila de encabezado con los nombres exactos de las columnas</li>
-                    <li>Asegúrate de que los IDs existan en el sistema</li>
-                    <li>Usa el formato correcto para cada campo (texto, números)</li>
-                  </ul>
+                  <p className="text-xs text-usina-text-secondary">
+                    CSV (Valores separados por comas)
+                  </p>
                 </div>
+                <input
+                  id="csv-upload"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  disabled={importing}
+                />
+              </label>
+            </div>
 
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Proceso de Importación</h3>
-                  <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-                    <li>Prepara tu archivo CSV con todas las columnas requeridas</li>
-                    <li>Sube el archivo usando el formulario en la pestaña "Subir Archivo"</li>
-                    <li>Revisa la vista previa para asegurarte de que los datos son correctos</li>
-                    <li>Haz clic en "Importar Datos" para comenzar el proceso</li>
-                    <li>Espera a que se complete la importación y revisa los resultados</li>
-                  </ol>
+            {file && (
+              <div className="p-3 bg-background/20 rounded-md">
+                <p className="text-sm text-usina-text-primary">
+                  <span className="font-medium">Archivo seleccionado:</span>{" "}
+                  {file.name}
+                </p>
+              </div>
+            )}
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {success && (
+              <Alert className="bg-green-50 border-green-200 text-green-800">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>{success}</AlertDescription>
+              </Alert>
+            )}
+
+            {previewData.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-medium text-usina-text-primary">
+                  Vista previa
+                </h3>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-usina-text-secondary">
+                          Anuncio
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          ID Anuncio
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          Conjunto
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          Campaña
+                        </TableHead>
+                        <TableHead className="text-usina-text-secondary">
+                          BM
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {previewData.map((row, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium text-usina-text-primary">
+                            {row.ad_name}
+                          </TableCell>
+                          <TableCell className="text-usina-text-secondary">
+                            {row.ad_id}
+                          </TableCell>
+                          <TableCell className="text-usina-text-secondary">
+                            {row.adset_name}
+                          </TableCell>
+                          <TableCell className="text-usina-text-secondary">
+                            {row.campaign_name}
+                          </TableCell>
+                          <TableCell className="text-usina-text-secondary">
+                            {row.bm_name}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
+                <p className="text-xs text-usina-text-secondary">
+                  Mostrando {previewData.length} de {csvData.length} filas
+                </p>
+              </div>
+            )}
 
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Solución de Problemas</h3>
-                  <p className="text-muted-foreground">Si encuentras errores durante la importación:</p>
-                  <ul className="list-disc pl-5 mt-2 space-y-1 text-muted-foreground">
-                    <li>Verifica que todos los IDs de referencia existan en el sistema</li>
-                    <li>Asegúrate de que no haya duplicados de ad_id</li>
-                    <li>Revisa el formato de los campos numéricos</li>
-                    <li>Verifica que los estados sean válidos (active, paused, etc.)</li>
-                  </ul>
+            {importing && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-usina-text-secondary">
+                    Importando...
+                  </span>
+                  <span className="text-sm text-usina-text-secondary">
+                    {progress}%
+                  </span>
+                </div>
+                <Progress value={progress} className="h-2" />
+              </div>
+            )}
+
+            {results.length > 0 && (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                <h3 className="font-medium text-usina-text-primary">
+                  Resultados
+                </h3>
+                <div className="space-y-1">
+                  {results.map((result, index) => (
+                    <div
+                      key={index}
+                      className={`text-xs p-1 rounded ${
+                        result.success
+                          ? "bg-green-50 text-green-800"
+                          : "bg-red-50 text-red-800"
+                      }`}
+                    >
+                      {result.message}
+                      {result.details && (
+                        <div className="text-xs opacity-75 mt-0.5">
+                          {result.details}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={importing}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={!csvData.length || importing}
+              className="bg-usina-primary hover:bg-usina-secondary"
+            >
+              {importing ? (
+                <>Importando...</>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Importar {csvData.length} Anuncios
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
-  )
+  );
 }
