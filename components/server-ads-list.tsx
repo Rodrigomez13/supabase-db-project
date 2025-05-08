@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
 
 interface ServerAd {
   id: string;
@@ -49,6 +50,7 @@ interface ServerAd {
   conversion_rate?: number;
   cost_per_lead?: number;
   cost_per_load?: number;
+  status?: string;
 }
 
 interface ServerAdsListProps {
@@ -67,6 +69,8 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
   const [selectedApiId, setSelectedApiId] = useState<string>("");
   const [budget, setBudget] = useState<number>(0);
   const [serverCoefficient, setServerCoefficient] = useState<number>(1);
+  const [editingStatus, setEditingStatus] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>("ACTIVE");
 
   useEffect(() => {
     if (serverId) {
@@ -102,24 +106,26 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
         .from("server_ads")
         .select(
           `
-          id, 
-          server_id,
-          ad_id,
-          api_id,
-          daily_budget,
-          leads,
-          loads,
-          spent,
-          date,
-          ads (
-            name,
-            ad_id,
-            adset_id
-          ),
-          apis (
-            name
-          )
-        `
+         id, 
+         server_id,
+         ad_id,
+         api_id,
+         daily_budget,
+         leads,
+         loads,
+         spent,
+         date,
+         status,
+         ads (
+           name,
+           ad_id,
+           adset_id,
+           status
+         ),
+         apis (
+           name
+         )
+       `
         )
         .eq("server_id", serverId);
 
@@ -192,6 +198,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
             conversion_rate: conversion_rate,
             cost_per_lead: cost_per_lead,
             cost_per_load: cost_per_load,
+            status: item.status || "ACTIVE", // Estado por defecto
           };
         })
       );
@@ -223,14 +230,15 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
         .from("ads")
         .select(
           `
-          id, 
-          name,
-          ad_id,
-          ad_sets (
-            name,
-            id
-          )
-        `
+         id, 
+         name,
+         ad_id,
+         status,
+         ad_sets (
+           name,
+           id
+         )
+       `
         )
         .not(
           "id",
@@ -240,7 +248,8 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
               ? existingAdIds.join(",")
               : "00000000-0000-0000-0000-000000000000"
           })`
-        );
+        )
+        .eq("active", true); // Solo anuncios activos
 
       if (error) throw error;
       setAvailableAds(data || []);
@@ -248,7 +257,8 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
       // Cargar APIs disponibles
       const { data: apisData, error: apisError } = await supabase
         .from("apis")
-        .select("id, name");
+        .select("id, name")
+        .eq("is_active", true);
 
       if (apisError) throw apisError;
       setAvailableApis(apisData || []);
@@ -278,6 +288,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
           loads: 0,
           spent: 0,
           date: today,
+          status: "ACTIVE", // Estado inicial
         })
         .select();
 
@@ -286,6 +297,10 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
       // Cerrar diálogo y recargar datos
       setShowAddDialog(false);
       fetchServerAds();
+      toast({
+        title: "Anuncio agregado",
+        description: "El anuncio ha sido agregado al servidor correctamente",
+      });
     } catch (err: any) {
       console.error("Error adding ad to server:", err);
       setError(`Error al agregar anuncio: ${err.message}`);
@@ -331,6 +346,43 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
     }
   }
 
+  async function updateAdStatus(id: string, status: string) {
+    try {
+      const adToUpdate = ads.find((ad) => ad.id === id);
+      if (!adToUpdate) return;
+
+      // Actualizar en la base de datos
+      const { error } = await supabase
+        .from("server_ads")
+        .update({ status: status })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // Actualizar estado local
+      const updatedAds = ads.map((ad) => {
+        if (ad.id === id) {
+          return { ...ad, status: status };
+        }
+        return ad;
+      });
+
+      setAds(updatedAds);
+      setEditingStatus(null);
+      toast({
+        title: "Estado actualizado",
+        description: `El anuncio ahora está en estado: ${status}`,
+      });
+    } catch (err: any) {
+      console.error("Error updating ad status:", err);
+      toast({
+        title: "Error",
+        description: `No se pudo actualizar el estado: ${err.message}`,
+        variant: "destructive",
+      });
+    }
+  }
+
   async function deleteAd(id: string) {
     try {
       const { error } = await supabase.from("server_ads").delete().eq("id", id);
@@ -339,8 +391,17 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
 
       // Actualizar estado local
       setAds(ads.filter((ad) => ad.id !== id));
-    } catch (err) {
+      toast({
+        title: "Anuncio eliminado",
+        description: "El anuncio ha sido eliminado del servidor",
+      });
+    } catch (err: any) {
       console.error("Error deleting ad:", err);
+      toast({
+        title: "Error",
+        description: `No se pudo eliminar el anuncio: ${err.message}`,
+        variant: "destructive",
+      });
     }
   }
 
@@ -354,22 +415,40 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
       const totalLoads = ads.reduce((sum, ad) => sum + (ad.loads || 0), 0);
       const totalSpent = ads.reduce((sum, ad) => sum + (ad.spent || 0), 0);
 
-      // 2. Crear registro diario
+      console.log("Totales calculados:", {
+        totalLeads,
+        totalLoads,
+        totalSpent,
+      });
+
+      // 2. Crear registro diario - Corregido para usar los nombres correctos de las columnas
       const { data: recordData, error: recordError } = await supabase
         .from("server_daily_records")
-        .insert({
-          server_id: serverId,
-          date: today,
-          total_leads: totalLeads,
-          total_conversions: totalLoads,
-          total_spent: totalSpent,
-          conversion_rate: totalLeads > 0 ? (totalLoads / totalLeads) * 100 : 0,
-          cost_per_lead: totalLeads > 0 ? totalSpent / totalLeads : 0,
-          cost_per_conversion: totalLoads > 0 ? totalSpent / totalLoads : 0,
-        })
+        .upsert(
+          {
+            server_id: serverId,
+            date: today,
+            leads: totalLeads, // Nombre correcto: leads
+            conversions: totalLoads, // Nombre correcto: conversions
+            total_conversions: totalLoads, // También actualizar total_conversions
+            conversion_rate:
+              totalLeads > 0 ? (totalLoads / totalLeads) * 100 : 0,
+            fb_spend: totalSpent, // Usando fb_spend en lugar de total_spent
+            cost_per_lead: totalLeads > 0 ? totalSpent / totalLeads : 0,
+            cost_per_conversion: totalLoads > 0 ? totalSpent / totalLoads : 0,
+          },
+          {
+            onConflict: "server_id,date",
+          }
+        )
         .select();
 
-      if (recordError) throw recordError;
+      if (recordError) {
+        console.error("Error al crear registro diario:", recordError);
+        throw recordError;
+      }
+
+      console.log("Registro diario creado:", recordData);
 
       // 3. Actualizar los totales en los anuncios correspondientes
       for (const ad of ads) {
@@ -420,6 +499,46 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
       return { success: false, error: err.message };
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Función para obtener la variante del badge según el estado
+  function getStatusBadgeVariant(status: string) {
+    switch (status) {
+      case "ACTIVE":
+        return "outline" as const;
+      case "PAUSED":
+        return "secondary" as const;
+      case "ADS_ERROR":
+        return "destructive" as const;
+      case "DELIVERY_ERROR":
+        return "default" as const;
+      case "BM_DISABLED":
+        return "destructive" as const;
+      default:
+        return "outline" as const;
+    }
+  }
+
+  // Función para obtener el texto del badge según el estado
+  function getStatusBadgeText(status: string) {
+    switch (status) {
+      case "ACTIVE":
+        return "ACTIVO";
+      case "PAUSED":
+        return "PAUSADO";
+      case "ADS_ERROR":
+        return "ERROR DE ANUNCIO";
+      case "DELIVERY_ERROR":
+        return "ERROR DE ENTREGA";
+      case "BM_DISABLED":
+        return "BM DESHABILITADO";
+      case "ACCOUNT_DISABLED":
+        return "CUENTA DESHABILITADA";
+      case "POLICY_VIOLATION":
+        return "VIOLACIÓN DE POLÍTICAS";
+      default:
+        return status;
     }
   }
 
@@ -531,9 +650,16 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
               ) {
                 const result = await generateDailyRecord();
                 if (result.success) {
-                  alert("Cierre diario completado con éxito");
+                  toast({
+                    title: "Cierre diario completado",
+                    description: "El cierre diario se ha completado con éxito",
+                  });
                 } else {
-                  alert(`Error al realizar el cierre diario: ${result.error}`);
+                  toast({
+                    title: "Error",
+                    description: `Error al realizar el cierre diario: ${result.error}`,
+                    variant: "destructive",
+                  });
                 }
               }
             }}
@@ -629,6 +755,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
+                        disabled={ad.status !== "ACTIVE"}
                       />
                     </div>
                   </TableCell>
@@ -636,12 +763,67 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                     {ad.api_name}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="bg-green-50 text-green-700 border-green-200"
-                    >
-                      ACTIVE
-                    </Badge>
+                    {editingStatus === ad.id ? (
+                      <div className="flex flex-col space-y-2">
+                        <Select
+                          value={selectedStatus}
+                          onValueChange={setSelectedStatus}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Selecciona un estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ACTIVE">ACTIVO</SelectItem>
+                            <SelectItem value="PAUSED">PAUSADO</SelectItem>
+                            <SelectItem value="ADS_ERROR">
+                              ERROR DE ANUNCIO
+                            </SelectItem>
+                            <SelectItem value="DELIVERY_ERROR">
+                              ERROR DE ENTREGA
+                            </SelectItem>
+                            <SelectItem value="BM_DISABLED">
+                              BM DESHABILITADO
+                            </SelectItem>
+                            <SelectItem value="ACCOUNT_DISABLED">
+                              CUENTA DESHABILITADA
+                            </SelectItem>
+                            <SelectItem value="POLICY_VIOLATION">
+                              VIOLACIÓN DE POLÍTICAS
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs"
+                            onClick={() => setEditingStatus(null)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-6 text-xs"
+                            onClick={() =>
+                              updateAdStatus(ad.id, selectedStatus)
+                            }
+                          >
+                            Guardar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Badge
+                        variant={getStatusBadgeVariant(ad.status ?? "ACTIVE")}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setEditingStatus(ad.id);
+                          setSelectedStatus(ad.status || "ACTIVE");
+                        }}
+                      >
+                        {getStatusBadgeText(ad.status || "ACTIVE")}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-1">
@@ -656,6 +838,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                             Math.max(0, (ad.leads || 0) - 1)
                           )
                         }
+                        disabled={ad.status !== "ACTIVE"}
                       >
                         <MinusIcon className="h-3 w-3" />
                       </Button>
@@ -670,6 +853,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
+                        disabled={ad.status !== "ACTIVE"}
                       />
                       <Button
                         variant="outline"
@@ -678,6 +862,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                         onClick={() =>
                           updateAdMetrics(ad.id, "leads", (ad.leads || 0) + 1)
                         }
+                        disabled={ad.status !== "ACTIVE"}
                       >
                         <PlusIcon className="h-3 w-3" />
                       </Button>
@@ -696,6 +881,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                             Math.max(0, (ad.loads || 0) - 1)
                           )
                         }
+                        disabled={ad.status !== "ACTIVE"}
                       >
                         <MinusIcon className="h-3 w-3" />
                       </Button>
@@ -710,6 +896,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
+                        disabled={ad.status !== "ACTIVE"}
                       />
                       <Button
                         variant="outline"
@@ -718,6 +905,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                         onClick={() =>
                           updateAdMetrics(ad.id, "loads", (ad.loads || 0) + 1)
                         }
+                        disabled={ad.status !== "ACTIVE"}
                       >
                         <PlusIcon className="h-3 w-3" />
                       </Button>
