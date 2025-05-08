@@ -230,12 +230,12 @@ export default function AdvertisingAccountsPage() {
                     <TableCell>
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
-                          account.status === "active"
+                          account.status === "Activo"
                             ? "bg-green-100 text-green-800"
                             : "bg-gray-100 text-gray-800"
                         }`}
                       >
-                        {account.status === "active" ? "Activa" : "Inactiva"}
+                        {account.status === "Activo" ? "Activa" : "Inactiva"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

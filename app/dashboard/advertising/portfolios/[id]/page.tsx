@@ -49,7 +49,7 @@ export default function EditPortfolioPage({
     name: "",
     account_id: "",
     spend_limit: 0,
-    status: "active",
+    status: "Activo",
     wallet_id: "",
   });
   const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -217,7 +217,7 @@ export default function EditPortfolioPage({
                   <SelectValue placeholder="Selecciona un estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
               </Select>

@@ -38,7 +38,7 @@ export default function FranchiseSettingsPage() {
     cvu: "",
     alias: "",
     link: "",
-    status: "active",
+    status: "Activo",
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,7 +82,7 @@ export default function FranchiseSettingsPage() {
     setIsActive(checked);
     setFormData((prev) => ({
       ...prev,
-      status: checked ? "active" : "inactive",
+      status: checked ? "Activo" : "inactive",
     }));
   };
 

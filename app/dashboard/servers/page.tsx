@@ -79,7 +79,7 @@ export default function ServersPage() {
         const directResult = await supabase
           .from("franchises")
           .select("id, name")
-          .eq("status", "active")
+          .eq("status", "Activo")
           .order("name");
         error = directResult.error;
         data = directResult.data || [];

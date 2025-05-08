@@ -53,19 +53,19 @@ export default function AdvertisingLayout({
           <TabsList className="w-full justify-start rounded-none border-b-0 bg-transparent p-0">
             <TabsTrigger
               value="overview"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=Activo]:border-primary data-[state=Activo]:bg-transparent data-[state=Activo]:shadow-none"
             >
               Resumen
             </TabsTrigger>
             <TabsTrigger
               value="business-managers"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=Activo]:border-primary data-[state=Activo]:bg-transparent data-[state=Activo]:shadow-none"
             >
               Business Managers
             </TabsTrigger>
             <TabsTrigger
               value="apis"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=Activo]:border-primary data-[state=Activo]:bg-transparent data-[state=Activo]:shadow-none"
             >
               APIs
             </TabsTrigger>

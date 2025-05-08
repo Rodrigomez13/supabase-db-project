@@ -229,7 +229,7 @@ export default function FranchisePhonesPage() {
 
     // Filtrar por estado
     if (statusFilter) {
-      const isActive = statusFilter === "active";
+      const isActive = statusFilter === "Activo";
       filtered = filtered.filter((phone) => phone.is_active === isActive);
     }
 
@@ -709,7 +709,7 @@ export default function FranchisePhonesPage() {
             ![
               "activo",
               "inactivo",
-              "active",
+              "Activo",
               "inactive",
               "1",
               "0",
@@ -743,7 +743,7 @@ export default function FranchisePhonesPage() {
       const phoneData = csvData.map((row) => ({
         franchise_id: franchise.id,
         order_number: Number(row.order),
-        is_active: ["activo", "active", "1", "true"].includes(
+        is_active: ["activo", "Activo", "1", "true"].includes(
           row.status.toLowerCase()
         ),
         phone_number: row.phone,
@@ -1034,7 +1034,7 @@ export default function FranchisePhonesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">Todos los estados</SelectItem>
-                        <SelectItem value="active">Activos</SelectItem>
+                        <SelectItem value="Activo">Activos</SelectItem>
                         <SelectItem value="inactive">Inactivos</SelectItem>
                       </SelectContent>
                     </Select>

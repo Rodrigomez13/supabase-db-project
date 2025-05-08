@@ -34,7 +34,7 @@ export default function NewPortfolioPage() {
     name: "",
     account_id: "",
     spend_limit: 0,
-    status: "active",
+    status: "Activo",
     wallet_id: "",
   });
   const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -152,14 +152,14 @@ export default function NewPortfolioPage() {
             <div className="space-y-2">
               <Label htmlFor="status">Estado</Label>
               <Select
-                defaultValue="active"
+                defaultValue="Activo"
                 onValueChange={(value) => handleSelectChange("status", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
               </Select>

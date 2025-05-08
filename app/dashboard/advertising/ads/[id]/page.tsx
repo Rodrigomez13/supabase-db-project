@@ -37,7 +37,7 @@ export default function EditAdPage({ params }: { params: { id: string } }) {
   const [name, setName] = useState("");
   const [adIdValue, setAdIdValue] = useState("");
   const [creativeType, setCreativeType] = useState("");
-  const [status, setStatus] = useState("ACTIVE");
+  const [status, setStatus] = useState("Activo");
   const [adsetId, setAdsetId] = useState("");
 
   // Extraer el ID del anuncio de params al inicio
@@ -185,9 +185,9 @@ export default function EditAdPage({ params }: { params: { id: string } }) {
                   <SelectValue placeholder="Selecciona un estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">Activo</SelectItem>
-                  <SelectItem value="PAUSED">Pausado</SelectItem>
-                  <SelectItem value="DELETED">Eliminado</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
+                  <SelectItem value="Pausada">Pausada</SelectItem>
+                  <SelectItem value="Eliminada">Eliminada</SelectItem>
                 </SelectContent>
               </Select>
               <div className="mt-2">

@@ -53,32 +53,32 @@ export async function getFranchiseDistribution(date: string): Promise<FranchiseD
     }
 
     // Crear un mapa de franquicias a teléfonos
-    const phonesByFranchiseId: Record<string, { total: number; active: number }> = {}
+    const phonesByFranchiseId: Record<string, { total: number; Activo: number }> = {}
 
     if (phonesData) {
       // Agrupar teléfonos por franchise_id
       phonesData.forEach((item: { franchise_id: string; is_active: boolean }) => {
         const franchiseId = item.franchise_id
         if (!phonesByFranchiseId[franchiseId]) {
-          phonesByFranchiseId[franchiseId] = { total: 0, active: 0 }
+          phonesByFranchiseId[franchiseId] = { total: 0, Activo: 0 }
         }
         phonesByFranchiseId[franchiseId].total += 1
         if (item.is_active) {
-          phonesByFranchiseId[franchiseId].active += 1
+          phonesByFranchiseId[franchiseId].Activo += 1
         }
       })
     }
 
     // Formatear los datos finales
     return franchiseData.map((item) => {
-      const phones = phonesByFranchiseId[item.franchise_id] || { total: 0, active: 0 }
+      const phones = phonesByFranchiseId[item.franchise_id] || { total: 0, Activo: 0 }
 
       return {
         franchise_name: item.franchise_name,
         conversions: item.conversions,
         percentage: totalConversions > 0 ? (item.conversions / totalConversions) * 100 : 0,
         phones: phones.total,
-        active_phones: phones.active,
+        active_phones: phones.Activo,
       }
     })
   } catch (error) {

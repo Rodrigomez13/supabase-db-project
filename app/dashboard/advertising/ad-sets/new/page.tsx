@@ -52,7 +52,7 @@ export default function NewAdSetPage() {
     name: "",
     adset_id: "",
     budget: 0,
-    status: "active",
+    status: "Activo",
     campaign_id: "",
     business_manager_id: "",
     portfolio_id: "",
@@ -62,7 +62,7 @@ export default function NewAdSetPage() {
     name: "",
     ad_id: "",
     creative_type: "image",
-    status: "active",
+    status: "Activo",
     adset_id: "", // Se llenará después de crear el adset
   });
 
@@ -275,7 +275,7 @@ export default function NewAdSetPage() {
                 <div className="space-y-2">
                   <Label htmlFor="status">Estado</Label>
                   <Select
-                    defaultValue="active"
+                    defaultValue="Activo"
                     onValueChange={(value) =>
                       handleSelectChange("status", value)
                     }
@@ -284,8 +284,8 @@ export default function NewAdSetPage() {
                       <SelectValue placeholder="Selecciona un estado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Activo</SelectItem>
-                      <SelectItem value="paused">Pausado</SelectItem>
+                      <SelectItem value="Activo">Activo</SelectItem>
+                      <SelectItem value="Pausada">Pausado</SelectItem>
                       <SelectItem value="inactive">Inactivo</SelectItem>
                     </SelectContent>
                   </Select>
@@ -352,7 +352,7 @@ export default function NewAdSetPage() {
                 <div className="space-y-2">
                   <Label htmlFor="ad_status">Estado</Label>
                   <Select
-                    defaultValue="active"
+                    defaultValue="Activo"
                     onValueChange={(value) =>
                       handleAdSelectChange("status", value)
                     }
@@ -361,8 +361,8 @@ export default function NewAdSetPage() {
                       <SelectValue placeholder="Selecciona un estado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Activo</SelectItem>
-                      <SelectItem value="paused">Pausado</SelectItem>
+                      <SelectItem value="Activo">Activo</SelectItem>
+                      <SelectItem value="Pausada">Pausado</SelectItem>
                       <SelectItem value="inactive">Inactivo</SelectItem>
                     </SelectContent>
                   </Select>

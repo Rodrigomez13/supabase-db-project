@@ -172,7 +172,7 @@ export default function ImportAdsPage() {
                 .from("portfolios")
                 .insert({
                   name: row.portfolio_name,
-                  status: "active",
+                  status: "Activo",
                 })
                 .select("id")
                 .single();
@@ -198,7 +198,7 @@ export default function ImportAdsPage() {
                 .insert({
                   name: row.bm_name,
                   bm_id: row.bm_id,
-                  status: "active",
+                  status: "Activo",
                   portfolio_id: portfolioId,
                 })
                 .select("id")
@@ -226,7 +226,7 @@ export default function ImportAdsPage() {
                   name: row.campaign_name,
                   campaign_id: row.campaign_id,
                   objective: row.objective || "CONVERSIONS",
-                  status: "active",
+                  status: "Activo",
                   business_manager_id: bmId,
                 })
                 .select("id")
@@ -253,7 +253,7 @@ export default function ImportAdsPage() {
                 .insert({
                   name: row.adset_name,
                   adset_id: row.adset_id,
-                  status: "active",
+                  status: "Activo",
                   campaign_id: campaignId,
                 })
                 .select("id")
@@ -277,7 +277,7 @@ export default function ImportAdsPage() {
                 .from("ads")
                 .update({
                   name: row.ad_name,
-                  status: row.status || "active",
+                  status: row.status || "Activo",
                   creative_type: row.creative_type || "image",
                   adset_id: adSetId,
                 })
@@ -292,7 +292,7 @@ export default function ImportAdsPage() {
               await supabase.from("ads").insert({
                 name: row.ad_name,
                 ad_id: row.ad_id,
-                status: row.status || "active",
+                status: row.status || "Activo",
                 creative_type: row.creative_type || "image",
                 adset_id: adSetId,
               });
@@ -337,7 +337,7 @@ export default function ImportAdsPage() {
     const headers =
       "ad_name,ad_id,creative_type,status,adset_name,adset_id,campaign_name,campaign_id,objective,bm_name,bm_id,portfolio_name";
     const sampleRow =
-      "Anuncio Ejemplo,123456789,image,active,Conjunto Ejemplo,987654321,Campaña Ejemplo,123123123,CONVERSIONS,BM Ejemplo,111222333,Portfolio Ejemplo";
+      "Anuncio Ejemplo,123456789,image,Activo,Conjunto Ejemplo,987654321,Campaña Ejemplo,123123123,CONVERSIONS,BM Ejemplo,111222333,Portfolio Ejemplo";
     const csvContent = `${headers}\n${sampleRow}`;
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -405,7 +405,7 @@ export default function ImportAdsPage() {
                 <li>
                   - creative_type: Tipo de creativo (image, video, carousel)
                 </li>
-                <li>- status: Estado del anuncio (active, paused)</li>
+                <li>- status: Estado del anuncio (Activo, Pausada)</li>
                 <li>- adset_name: Nombre del conjunto de anuncios</li>
                 <li>- adset_id: ID del conjunto de anuncios</li>
                 <li>- campaign_name: Nombre de la campaña</li>

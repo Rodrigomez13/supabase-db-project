@@ -34,7 +34,7 @@ export default function NewCampaignPage() {
     name: "",
     campaign_id: "",
     objective: "",
-    status: "active",
+    status: "Activo",
     bm_id: "",
   });
   const [businessManagers, setBusinessManagers] = useState<BusinessManager[]>(
@@ -162,15 +162,15 @@ export default function NewCampaignPage() {
             <div className="space-y-2">
               <Label htmlFor="status">Estado</Label>
               <Select
-                defaultValue="active"
+                defaultValue="Activo"
                 onValueChange={(value) => handleSelectChange("status", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Activa</SelectItem>
-                  <SelectItem value="paused">Pausada</SelectItem>
+                  <SelectItem value="Activo">Activa</SelectItem>
+                  <SelectItem value="Pausada">Pausada</SelectItem>
                   <SelectItem value="inactive">Inactiva</SelectItem>
                 </SelectContent>
               </Select>

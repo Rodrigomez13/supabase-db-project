@@ -155,7 +155,7 @@ export default function FranchisesPage() {
                       {new Date(franchise.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={franchise.status || "active"} />
+                      <StatusBadge status={franchise.status || "Activo"} />
                     </TableCell>
                     <TableCell className="text-center text-usina-text-primary">
                       {franchise.activePhones}/{franchise.totalPhones}

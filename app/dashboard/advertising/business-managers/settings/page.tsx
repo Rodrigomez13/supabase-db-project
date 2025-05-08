@@ -24,14 +24,14 @@ export default function BusinessManagerSettingsPage() {
     {
       id: "1",
       name: "Portfolio Principal",
-      status: "active",
+      status: "Activo",
       businessManagers: 3,
       wallets: 2,
     },
     {
       id: "2",
       name: "Portfolio Secundario",
-      status: "active",
+      status: "Activo",
       businessManagers: 1,
       wallets: 1,
     },
@@ -51,21 +51,21 @@ export default function BusinessManagerSettingsPage() {
       name: "Billetera Principal",
       amount: 5000,
       portfolio: "Portfolio Principal",
-      status: "active",
+      status: "Activo",
     },
     {
       id: "2",
       name: "Billetera Secundaria",
       amount: 2500,
       portfolio: "Portfolio Principal",
-      status: "active",
+      status: "Activo",
     },
     {
       id: "3",
       name: "Billetera de Pruebas",
       amount: 1000,
       portfolio: "Portfolio Secundario",
-      status: "active",
+      status: "Activo",
     },
   ];
 
@@ -126,12 +126,12 @@ export default function BusinessManagerSettingsPage() {
                       <TableCell>
                         <Badge
                           variant={
-                            portfolio.status === "active"
+                            portfolio.status === "Activo"
                               ? "success"
                               : "secondary"
                           }
                         >
-                          {portfolio.status === "active"
+                          {portfolio.status === "Activo"
                             ? "Activo"
                             : "Inactivo"}
                         </Badge>
@@ -187,10 +187,10 @@ export default function BusinessManagerSettingsPage() {
                       <TableCell>
                         <Badge
                           variant={
-                            wallet.status === "active" ? "success" : "secondary"
+                            wallet.status === "Activo" ? "success" : "secondary"
                           }
                         >
-                          {wallet.status === "active" ? "Activa" : "Inactiva"}
+                          {wallet.status === "Activo" ? "Activa" : "Inactiva"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">

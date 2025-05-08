@@ -34,7 +34,7 @@ export default function NewAdPage() {
     name: "",
     ad_id: "",
     creative_type: "",
-    status: "active",
+    status: "Activo",
     adset_id: "",
   });
   const [adSets, setAdSets] = useState<AdSet[]>([]);
@@ -157,15 +157,15 @@ export default function NewAdPage() {
             <div className="space-y-2">
               <Label htmlFor="status">Estado</Label>
               <Select
-                defaultValue="active"
+                defaultValue="Activo"
                 onValueChange={(value) => handleSelectChange("status", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Activo</SelectItem>
-                  <SelectItem value="paused">Pausado</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
+                  <SelectItem value="Pausada">Pausado</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
               </Select>

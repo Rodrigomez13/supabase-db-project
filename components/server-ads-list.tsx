@@ -70,7 +70,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
   const [budget, setBudget] = useState<number>(0);
   const [serverCoefficient, setServerCoefficient] = useState<number>(1);
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>("ACTIVE");
+  const [selectedStatus, setSelectedStatus] = useState<string>("Activo");
 
   useEffect(() => {
     if (serverId) {
@@ -198,7 +198,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
             conversion_rate: conversion_rate,
             cost_per_lead: cost_per_lead,
             cost_per_load: cost_per_load,
-            status: item.status || "ACTIVE", // Estado por defecto
+            status: item.status || "Activo", // Estado por defecto
           };
         })
       );
@@ -249,7 +249,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
               : "00000000-0000-0000-0000-000000000000"
           })`
         )
-        .eq("active", true); // Solo anuncios activos
+        .eq("Activo", true); // Solo anuncios activos
 
       if (error) throw error;
       setAvailableAds(data || []);
@@ -288,7 +288,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
           loads: 0,
           spent: 0,
           date: today,
-          status: "ACTIVE", // Estado inicial
+          status: "Activo", // Estado inicial
         })
         .select();
 
@@ -505,15 +505,15 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
   // Función para obtener la variante del badge según el estado
   function getStatusBadgeVariant(status: string) {
     switch (status) {
-      case "ACTIVE":
+      case "Activo":
         return "outline" as const;
-      case "PAUSED":
+      case "Pausada":
         return "secondary" as const;
-      case "ADS_ERROR":
+      case "Error":
         return "destructive" as const;
-      case "DELIVERY_ERROR":
+      case "Error_de_Entrega":
         return "default" as const;
-      case "BM_DISABLED":
+      case "BM_Deshabilitado":
         return "destructive" as const;
       default:
         return "outline" as const;
@@ -523,20 +523,20 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
   // Función para obtener el texto del badge según el estado
   function getStatusBadgeText(status: string) {
     switch (status) {
-      case "ACTIVE":
-        return "ACTIVO";
-      case "PAUSED":
-        return "PAUSADO";
-      case "ADS_ERROR":
-        return "ERROR DE ANUNCIO";
-      case "DELIVERY_ERROR":
-        return "ERROR DE ENTREGA";
-      case "BM_DISABLED":
-        return "BM DESHABILITADO";
-      case "ACCOUNT_DISABLED":
-        return "CUENTA DESHABILITADA";
-      case "POLICY_VIOLATION":
-        return "VIOLACIÓN DE POLÍTICAS";
+      case "Activo":
+        return "Activo";
+      case "Pausada":
+        return "Pausada";
+      case "Error":
+        return "Error de Anuncio";
+      case "Error_de_Entrega":
+        return "Error de Entrega";
+      case "BM_Deshabilitado":
+        return "BM Deshabilitado";
+      case "Cuenta":
+        return "Cuenta Deshabilitada";
+      case "Violación_de_Políticas":
+        return "Violación de Políticas";
       default:
         return status;
     }
@@ -755,7 +755,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
-                        disabled={ad.status !== "ACTIVE"}
+                        disabled={ad.status !== "Activo"}
                       />
                     </div>
                   </TableCell>
@@ -773,22 +773,22 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                             <SelectValue placeholder="Selecciona un estado" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="ACTIVE">ACTIVO</SelectItem>
-                            <SelectItem value="PAUSED">PAUSADO</SelectItem>
-                            <SelectItem value="ADS_ERROR">
-                              ERROR DE ANUNCIO
+                            <SelectItem value="Activo">Activo</SelectItem>
+                            <SelectItem value="Pausada">Pausada</SelectItem>
+                            <SelectItem value="Error">
+                              Error de Anuncio
                             </SelectItem>
-                            <SelectItem value="DELIVERY_ERROR">
-                              ERROR DE ENTREGA
+                            <SelectItem value="Error_de_Entrega">
+                              Error de Entrega
                             </SelectItem>
-                            <SelectItem value="BM_DISABLED">
-                              BM DESHABILITADO
+                            <SelectItem value="BM_Deshabilitado">
+                              BM Deshabilitado
                             </SelectItem>
-                            <SelectItem value="ACCOUNT_DISABLED">
-                              CUENTA DESHABILITADA
+                            <SelectItem value="Cuenta_Deshabilitada">
+                              Cuenta Deshabilitada
                             </SelectItem>
-                            <SelectItem value="POLICY_VIOLATION">
-                              VIOLACIÓN DE POLÍTICAS
+                            <SelectItem value="Violación_de_Políticas">
+                              Violación de Políticas
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -814,14 +814,14 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                       </div>
                     ) : (
                       <Badge
-                        variant={getStatusBadgeVariant(ad.status ?? "ACTIVE")}
+                        variant={getStatusBadgeVariant(ad.status ?? "Activo")}
                         className="cursor-pointer"
                         onClick={() => {
                           setEditingStatus(ad.id);
-                          setSelectedStatus(ad.status || "ACTIVE");
+                          setSelectedStatus(ad.status || "Activo");
                         }}
                       >
-                        {getStatusBadgeText(ad.status || "ACTIVE")}
+                        {getStatusBadgeText(ad.status || "Activo")}
                       </Badge>
                     )}
                   </TableCell>
@@ -838,7 +838,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                             Math.max(0, (ad.leads || 0) - 1)
                           )
                         }
-                        disabled={ad.status !== "ACTIVE"}
+                        disabled={ad.status !== "Activo"}
                       >
                         <MinusIcon className="h-3 w-3" />
                       </Button>
@@ -853,7 +853,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
-                        disabled={ad.status !== "ACTIVE"}
+                        disabled={ad.status !== "Activo"}
                       />
                       <Button
                         variant="outline"
@@ -862,7 +862,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                         onClick={() =>
                           updateAdMetrics(ad.id, "leads", (ad.leads || 0) + 1)
                         }
-                        disabled={ad.status !== "ACTIVE"}
+                        disabled={ad.status !== "Activo"}
                       >
                         <PlusIcon className="h-3 w-3" />
                       </Button>
@@ -881,7 +881,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                             Math.max(0, (ad.loads || 0) - 1)
                           )
                         }
-                        disabled={ad.status !== "ACTIVE"}
+                        disabled={ad.status !== "Activo"}
                       >
                         <MinusIcon className="h-3 w-3" />
                       </Button>
@@ -896,7 +896,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
-                        disabled={ad.status !== "ACTIVE"}
+                        disabled={ad.status !== "Activo"}
                       />
                       <Button
                         variant="outline"
@@ -905,7 +905,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                         onClick={() =>
                           updateAdMetrics(ad.id, "loads", (ad.loads || 0) + 1)
                         }
-                        disabled={ad.status !== "ACTIVE"}
+                        disabled={ad.status !== "Activo"}
                       >
                         <PlusIcon className="h-3 w-3" />
                       </Button>

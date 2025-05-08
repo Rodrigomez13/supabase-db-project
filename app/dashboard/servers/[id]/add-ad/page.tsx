@@ -112,7 +112,7 @@ export default function AddServerAdPage({
             ad_sets (name)
           `
           )
-          .eq("active", true);
+          .eq("Activo", true);
 
         if (adsError) throw adsError;
 
@@ -219,7 +219,7 @@ export default function AddServerAdPage({
 
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
           No se pueden agregar anuncios a un servidor inactivo. Por favor,
-          active el servidor primero.
+          Activo el servidor primero.
         </div>
 
         <Button onClick={() => router.back()}>Volver</Button>

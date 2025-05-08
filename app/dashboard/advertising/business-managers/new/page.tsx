@@ -33,7 +33,7 @@ export default function NewBusinessManagerPage() {
   const [formData, setFormData] = useState({
     name: "",
     bm_id: "",
-    status: "active",
+    status: "Activo",
     portfolio_id: "",
   });
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
@@ -139,14 +139,14 @@ export default function NewBusinessManagerPage() {
             <div className="space-y-2">
               <Label htmlFor="status">Estado</Label>
               <Select
-                defaultValue="active"
+                defaultValue="Activo"
                 onValueChange={(value) => handleSelectChange("status", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
               </Select>

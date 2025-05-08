@@ -46,7 +46,7 @@ export default function EditCampaignPage({
   const [name, setName] = useState("");
   const [campaignIdValue, setCampaignIdValue] = useState("");
   const [objective, setObjective] = useState("");
-  const [status, setStatus] = useState("ACTIVE");
+  const [status, setStatus] = useState("Activo");
   const [bmId, setBmId] = useState("");
 
   // Extraer el ID de la campaña de params al inicio
@@ -194,9 +194,9 @@ export default function EditCampaignPage({
                   <SelectValue placeholder="Selecciona un estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">Activo</SelectItem>
-                  <SelectItem value="PAUSED">Pausado</SelectItem>
-                  <SelectItem value="DELETED">Eliminado</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
+                  <SelectItem value="Pausada">Pausada</SelectItem>
+                  <SelectItem value="Eliminada">Eliminada</SelectItem>
                 </SelectContent>
               </Select>
               <div className="mt-2">

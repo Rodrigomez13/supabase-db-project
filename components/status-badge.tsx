@@ -11,12 +11,12 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     status: string
   ): { label: string; variant: BadgeVariant } => {
     switch (status) {
-      case "active":
+      case "Activo":
         return {
           label: "Activo",
           variant: "success",
         };
-      case "paused":
+      case "Pausada":
         return {
           label: "Pausada",
           variant: "warning",

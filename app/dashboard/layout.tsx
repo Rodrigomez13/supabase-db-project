@@ -151,7 +151,7 @@ export default function DashboardLayout({
               <Link
                 href="/dashboard"
                 className={`usina-sidebar-nav-item ${
-                  isActive("/dashboard") ? "active" : ""
+                  isActive("/dashboard") ? "Activo" : ""
                 }`}
               >
                 <LayoutDashboard className="usina-sidebar-icon" />
@@ -162,7 +162,7 @@ export default function DashboardLayout({
               <Link
                 href="/dashboard/servers"
                 className={`usina-sidebar-nav-item ${
-                  pathname?.includes("/dashboard/servers") ? "active" : ""
+                  pathname?.includes("/dashboard/servers") ? "Activo" : ""
                 }`}
               >
                 <Server className="usina-sidebar-icon" />
@@ -173,7 +173,7 @@ export default function DashboardLayout({
               <Link
                 href="/dashboard/franchises"
                 className={`usina-sidebar-nav-item ${
-                  pathname?.includes("/dashboard/franchises") ? "active" : ""
+                  pathname?.includes("/dashboard/franchises") ? "Activo" : ""
                 }`}
               >
                 <Store className="usina-sidebar-icon" />
@@ -185,7 +185,7 @@ export default function DashboardLayout({
                 href="/dashboard/distribution"
                 className={cn(
                   "usina-sidebar-nav-item",
-                  pathname === "/dashboard/distribution" && "active"
+                  pathname === "/dashboard/distribution" && "Activo"
                 )}
               >
                 <Send className="usina-sidebar-icon" />
@@ -196,7 +196,7 @@ export default function DashboardLayout({
               <Link
                 href="/dashboard/advertising"
                 className={`usina-sidebar-nav-item ${
-                  pathname?.includes("/dashboard/advertising") ? "active" : ""
+                  pathname?.includes("/dashboard/advertising") ? "Activo" : ""
                 }`}
               >
                 <BarChart3 className="usina-sidebar-icon" />
@@ -207,7 +207,7 @@ export default function DashboardLayout({
               <button
                 onClick={() => setFinancesOpen(!financesOpen)}
                 className={`usina-sidebar-nav-item w-full justify-between ${
-                  pathname?.includes("/dashboard/finances") ? "active" : ""
+                  pathname?.includes("/dashboard/finances") ? "Activo" : ""
                 }`}
               >
                 <div className="flex items-center">
@@ -259,7 +259,7 @@ export default function DashboardLayout({
               <Link
                 href="/dashboard/personnel"
                 className={`usina-sidebar-nav-item ${
-                  pathname?.includes("/dashboard/personnel") ? "active" : ""
+                  pathname?.includes("/dashboard/personnel") ? "Activo" : ""
                 }`}
               >
                 <Users className="usina-sidebar-icon" />
@@ -270,7 +270,7 @@ export default function DashboardLayout({
               <Link
                 href="/dashboard/reports"
                 className={`usina-sidebar-nav-item ${
-                  pathname?.includes("/dashboard/reports") ? "active" : ""
+                  pathname?.includes("/dashboard/reports") ? "Activo" : ""
                 }`}
               >
                 <FileText className="usina-sidebar-icon" />
@@ -281,7 +281,7 @@ export default function DashboardLayout({
               <button
                 onClick={() => setAdminOpen(!adminOpen)}
                 className={`usina-sidebar-nav-item w-full justify-between ${
-                  pathname?.includes("/admin/") ? "active" : ""
+                  pathname?.includes("/admin/") ? "Activo" : ""
                 }`}
               >
                 <div className="flex items-center">
@@ -363,7 +363,7 @@ export default function DashboardLayout({
               <Link
                 href="/dashboard/settings"
                 className={`usina-sidebar-nav-item ${
-                  pathname?.includes("/dashboard/settings") ? "active" : ""
+                  pathname?.includes("/dashboard/settings") ? "Activo" : ""
                 }`}
               >
                 <Settings className="usina-sidebar-icon" />

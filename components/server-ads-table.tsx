@@ -378,7 +378,7 @@ export function ServerAdsTable({
                         variant="outline"
                         className="bg-green-50 text-green-700 border-green-200"
                       >
-                        ACTIVE
+                        Activo
                       </Badge>
                     </TableCell>
                     <TableCell>

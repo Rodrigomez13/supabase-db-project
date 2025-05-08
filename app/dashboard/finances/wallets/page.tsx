@@ -38,7 +38,7 @@ export default function WalletsPage() {
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">Todas</TabsTrigger>
-          <TabsTrigger value="active">Activas</TabsTrigger>
+          <TabsTrigger value="Activo">Activas</TabsTrigger>
           <TabsTrigger value="inactive">Inactivas</TabsTrigger>
         </TabsList>
 
@@ -91,35 +91,35 @@ export default function WalletsPage() {
                       platform: "Facebook",
                       id: "123456789",
                       balance: 5250.75,
-                      active: true,
+                      Activo: true,
                     },
                     {
                       name: "Cuenta Secundaria",
                       platform: "Google",
                       id: "987654321",
                       balance: 3120.5,
-                      active: true,
+                      Activo: true,
                     },
                     {
                       name: "Cuenta Reserva",
                       platform: "TikTok",
                       id: "456789123",
                       balance: 1500.25,
-                      active: false,
+                      Activo: false,
                     },
                     {
                       name: "Cuenta Emergencia",
                       platform: "Facebook",
                       id: "789123456",
                       balance: 750.0,
-                      active: true,
+                      Activo: true,
                     },
                     {
                       name: "Cuenta Pruebas",
                       platform: "Google",
                       id: "321654987",
                       balance: 250.0,
-                      active: false,
+                      Activo: false,
                     },
                   ].map((wallet, i) => (
                     <TableRow key={i}>
@@ -136,12 +136,12 @@ export default function WalletsPage() {
                       <TableCell className="text-right">
                         <span
                           className={`px-2 py-1 rounded-full text-xs ${
-                            wallet.active
+                            wallet.Activo
                               ? "bg-green-100 text-green-800"
                               : "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {wallet.active ? "Activa" : "Inactiva"}
+                          {wallet.Activo ? "Activa" : "Inactiva"}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -157,7 +157,7 @@ export default function WalletsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="active" className="space-y-4">
+        <TabsContent value="Activo" className="space-y-4">
           {/* Contenido similar pero filtrado para cuentas activas */}
           <Card>
             <CardHeader>
