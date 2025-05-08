@@ -40,7 +40,7 @@ export function Chart({
         }
 
         // Crear el nuevo gráfico
-        const ctx = chartRef.current.getContext("2d");
+        const ctx = chartRef.current ? chartRef.current.getContext("2d") : null;
         if (ctx) {
           // Configuración por defecto para el tema oscuro de Usina con colores turquesa
           const defaultOptions = {

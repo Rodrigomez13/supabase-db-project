@@ -8,7 +8,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   TrendingUp,
-  Phone,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -25,10 +24,16 @@ import { StatCard } from "@/components/stat-card";
 import { CombinedChart } from "@/components/combined-chart";
 import Link from "next/link";
 import { getHourlyMetrics } from "@/lib/queries/hourly-metrics";
+import { getFranchiseDistribution } from "@/lib/queries/franchise-distribution";
 import {
-  getFranchiseDistribution,
-  type FranchiseDistribution,
-} from "@/lib/queries/franchise-distribution";
+  getFranchiseById,
+  getFranchiseBalances,
+  getFranchises,
+} from "@/lib/queries/franchise-queries";
+import { DashboardStats } from "@/components/dashboard-stats";
+import { RecentLeads } from "@/components/recent-leads";
+import { RecentConversions } from "@/components/recent-conversions";
+import { FranchiseSelector } from "@/components/franchise-selector";
 
 interface DashboardMetrics {
   leads: number;
@@ -50,9 +55,7 @@ export default function DashboardPage() {
   const [dateString, setDateString] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [franchiseDistribution, setFranchiseDistribution] = useState<
-    FranchiseDistribution[]
-  >([]);
+  const [franchiseDistribution, setFranchiseDistribution] = useState<any[]>([]); // Changed to any[] for compatibility
   const [hourlyData, setHourlyData] = useState<any>(null);
   const [loadingHourly, setLoadingHourly] = useState(true);
   const [loadingDistribution, setLoadingDistribution] = useState(true);
@@ -69,50 +72,61 @@ export default function DashboardPage() {
         setMetrics(metricsData);
 
         // Cargar datos de distribución de franquicias
-        const distributionData = await getFranchiseDistribution(dateString);
-        setFranchiseDistribution(distributionData);
-        setLoadingDistribution(false);
-
-        // Cargar datos de métricas por hora
-        const hourlyMetrics = await getHourlyMetrics(dateString);
-
-        if (hourlyMetrics && hourlyMetrics.length > 0) {
-          const chartData = {
-            labels: hourlyMetrics.map((item) => item.hour),
-            datasets: [
-              {
-                type: "bar" as const,
-                label: "Leads",
-                data: hourlyMetrics.map((item) => item.leads),
-                backgroundColor: "rgba(255, 99, 132, 0.5)",
-                yAxisID: "y",
-              },
-              {
-                type: "bar" as const,
-                label: "Conversiones",
-                data: hourlyMetrics.map((item) => item.conversions),
-                backgroundColor: "rgba(54, 162, 235, 0.5)",
-                yAxisID: "y",
-              },
-              {
-                type: "line" as const,
-                label: "Costo por Conversión ($)",
-                data: hourlyMetrics.map((item) => item.cost_per_conversion),
-                borderColor: "rgba(255, 159, 64, 1)",
-                backgroundColor: "rgba(255, 159, 64, 0.2)",
-                yAxisID: "y1",
-                tension: 0.4,
-                fill: false,
-                pointRadius: 3,
-                pointHoverRadius: 5,
-              },
-            ],
-          };
-
-          setHourlyData(chartData);
+        try {
+          const distributionData = await getFranchiseDistribution(dateString);
+          setFranchiseDistribution(distributionData || []);
+        } catch (error) {
+          console.error("Error loading franchise distribution:", error);
+          setFranchiseDistribution([]);
+        } finally {
+          setLoadingDistribution(false);
         }
 
-        setLoadingHourly(false);
+        // Cargar datos de métricas por hora
+        try {
+          const hourlyMetrics = await getHourlyMetrics(dateString);
+
+          if (hourlyMetrics && hourlyMetrics.length > 0) {
+            const chartData = {
+              labels: hourlyMetrics.map((item) => item.hour),
+              datasets: [
+                {
+                  type: "bar" as const,
+                  label: "Leads",
+                  data: hourlyMetrics.map((item) => item.leads),
+                  backgroundColor: "rgba(255, 99, 132, 0.5)",
+                  yAxisID: "y",
+                },
+                {
+                  type: "bar" as const,
+                  label: "Conversiones",
+                  data: hourlyMetrics.map((item) => item.conversions),
+                  backgroundColor: "rgba(54, 162, 235, 0.5)",
+                  yAxisID: "y",
+                },
+                {
+                  type: "line" as const,
+                  label: "Costo por Conversión ($)",
+                  data: hourlyMetrics.map((item) => item.cost_per_conversion),
+                  borderColor: "rgba(255, 159, 64, 1)",
+                  backgroundColor: "rgba(255, 159, 64, 0.2)",
+                  yAxisID: "y1",
+                  tension: 0.4,
+                  fill: false,
+                  pointRadius: 3,
+                  pointHoverRadius: 5,
+                },
+              ],
+            };
+
+            setHourlyData(chartData);
+          }
+        } catch (error) {
+          console.error("Error loading hourly metrics:", error);
+          setHourlyData(null);
+        } finally {
+          setLoadingHourly(false);
+        }
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
@@ -133,20 +147,18 @@ export default function DashboardPage() {
 
   // Calcular totales para la tabla de distribución
   const totalConversions = franchiseDistribution.reduce(
-    (sum, item) => sum + item.conversions,
+    (sum, item) => sum + (item.conversions || 0),
     0
   );
   const totalPhones = franchiseDistribution.reduce(
-    (sum, item) => sum + item.phones,
+    (sum, item) => sum + (item.active_phones || 0),
     0
   );
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-usina-text-primary">
-          Dashboard
-        </h1>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="flex items-center gap-2">
@@ -169,12 +181,12 @@ export default function DashboardPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} className="border-usina-card bg-background/5">
+            <Card key={i} className="border bg-background/5">
               <CardHeader className="pb-2">
-                <div className="h-6 bg-gray-200 animate-pulse rounded"></div>
+                <div className="h-6 bg-[#133936] animate-pulse rounded"></div>
               </CardHeader>
               <CardContent>
-                <div className="h-8 bg-gray-200 animate-pulse rounded"></div>
+                <div className="h-8 bg-[#133936] animate-pulse rounded"></div>
               </CardContent>
             </Card>
           ))}
@@ -242,11 +254,9 @@ export default function DashboardPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <Card className="border-usina-card bg-background/5">
+          <Card className="border bg-background/5">
             <CardHeader>
-              <CardTitle className="text-usina-text-primary">
-                Progreso Diario
-              </CardTitle>
+              <CardTitle>Progreso Diario</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Evolución de leads y cargas durante el día
               </p>
@@ -271,35 +281,33 @@ export default function DashboardPage() {
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-usina-card bg-background/5">
+            <Card className="border bg-background/5">
               <CardHeader>
-                <CardTitle className="text-usina-text-primary">
-                  Métricas de Rendimiento
-                </CardTitle>
+                <CardTitle>Métricas de Rendimiento</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-usina-text-secondary">
+                    <h3 className="text-sm font-medium text-muted-foreground">
                       Gasto Total
                     </h3>
-                    <p className="text-2xl font-bold text-usina-text-primary">
+                    <p className="text-2xl font-bold">
                       ${metrics?.spend?.toFixed(2) || "0.00"}
                     </p>
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-usina-text-secondary">
+                    <h3 className="text-sm font-medium text-muted-foreground">
                       Costo por Lead
                     </h3>
-                    <p className="text-2xl font-bold text-usina-text-primary">
+                    <p className="text-2xl font-bold">
                       ${metrics?.cost_per_lead?.toFixed(2) || "0.00"}
                     </p>
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-usina-text-secondary">
+                    <h3 className="text-sm font-medium text-muted-foreground">
                       Costo por Conversión
                     </h3>
-                    <p className="text-2xl font-bold text-usina-text-primary">
+                    <p className="text-2xl font-bold">
                       ${metrics?.cost_per_conversion?.toFixed(2) || "0.00"}
                     </p>
                   </div>
@@ -307,11 +315,9 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-usina-card bg-background/5">
+            <Card className="border bg-background/5">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-usina-text-primary">
-                  Distribución por Franquicia
-                </CardTitle>
+                <CardTitle>Distribución por Franquicia</CardTitle>
                 <Link href="/dashboard/franchises">
                   <Button variant="outline" size="sm">
                     Ver todas
@@ -335,17 +341,24 @@ export default function DashboardPage() {
                   <div className="space-y-4">
                     {franchiseDistribution.slice(0, 4).map((franchise) => (
                       <div
-                        key={franchise.franchise_name}
+                        key={
+                          franchise.franchise_name ||
+                          `franchise-${franchise.franchise_id}`
+                        }
                         className="flex justify-between items-center"
                       >
                         <div className="flex items-center">
                           <div className="w-2 h-2 rounded-full bg-primary mr-2"></div>
-                          <span>{franchise.franchise_name}</span>
+                          <span>
+                            {franchise.franchise_name || "Sin nombre"}
+                          </span>
                         </div>
                         <div className="flex items-center">
-                          <span className="mr-4">{franchise.conversions}</span>
+                          <span className="mr-4">
+                            {franchise.conversions || 0}
+                          </span>
                           <span className="text-muted-foreground">
-                            {franchise.percentage.toFixed(1)}%
+                            {(franchise.percentage || 0).toFixed(1)}%
                           </span>
                         </div>
                       </div>
@@ -362,11 +375,9 @@ export default function DashboardPage() {
         </TabsContent>
 
         <TabsContent value="distribution" className="space-y-4">
-          <Card className="border-usina-card bg-background/5">
+          <Card className="border bg-background/5">
             <CardHeader>
-              <CardTitle className="text-usina-text-primary">
-                Distribución por Franquicia
-              </CardTitle>
+              <CardTitle>Distribución por Franquicia</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingDistribution ? (
@@ -386,25 +397,27 @@ export default function DashboardPage() {
                     </thead>
                     <tbody>
                       {franchiseDistribution.map((franchise) => (
-                        <tr key={franchise.franchise_name} className="border-b">
+                        <tr
+                          key={
+                            franchise.franchise_name ||
+                            `franchise-${franchise.franchise_id}`
+                          }
+                          className="border-b"
+                        >
                           <td className="py-2 px-4">
-                            {franchise.franchise_name}
+                            {franchise.franchise_name || "Sin nombre"}
                           </td>
                           <td className="text-center py-2 px-4">
-                            {franchise.conversions}
+                            {franchise.conversions || 0}
                           </td>
                           <td className="text-center py-2 px-4">
-                            {franchise.percentage.toFixed(1)}%
+                            {(franchise.percentage || 0).toFixed(1)}%
                           </td>
                           <td className="text-center py-2 px-4">
-                            <Link
-                              href={`/dashboard/franchises/phones?franchise=${franchise.franchise_name}`}
-                            >
-                              <Button variant="outline" size="sm">
-                                <Phone className="h-4 w-4 mr-2" />
-                                {franchise.phones}
-                              </Button>
-                            </Link>
+                            {franchise.active_phones || 0}/
+                            {franchise.total_phones ||
+                              franchise.active_phones ||
+                              0}
                           </td>
                         </tr>
                       ))}

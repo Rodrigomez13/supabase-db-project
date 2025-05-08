@@ -69,7 +69,7 @@ export default function EditPortfolioPage({
     try {
       setIsLoading(true);
       const data = await safeQuery<Portfolio>("portfolios", {
-        filters: [{ column: "id", value: id }],
+        where: [{ column: "id", value: id }],
       });
 
       if (data.length > 0) {

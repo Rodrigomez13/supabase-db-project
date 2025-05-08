@@ -88,7 +88,7 @@ export default function RegisterActivityPage() {
     try {
       const data = await safeQuery<Server>("servers", {
         select: "id, name",
-        filter: { column: "is_active", operator: "eq", value: true },
+        where: { is_active: true },
         orderBy: { column: "name" },
       });
       setServers(data || []);
@@ -132,7 +132,13 @@ export default function RegisterActivityPage() {
 
       if (error) throw error;
 
-      setActivityHistory(data || []);
+      setActivityHistory(
+        (data || []).map((record) => ({
+          ...record,
+          servers: record.servers[0], // Assuming servers is an array and taking the first element
+          ads: record.ads[0], // Assuming ads is an array and taking the first element
+        }))
+      );
     } catch (error) {
       console.error("Error fetching activity history:", error);
     } finally {

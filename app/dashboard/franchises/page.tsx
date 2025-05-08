@@ -14,37 +14,61 @@ import {
 import { PlusIcon, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import {
-  type Franchise,
+  type Franchise as BaseFranchise,
   getFranchises,
   deleteFranchise,
 } from "@/lib/queries/franchise-queries";
+
+export type Franchise = BaseFranchise & {
+  phones?: { is_active: boolean }[]; // Ensure phones property exists
+};
 import { StatusBadge } from "@/components/status-badge";
 
+export type LocalFranchise = {
+  id: string;
+  name: string;
+  owner?: string;
+  created_at: string;
+  status?: string;
+  phones?: { is_active: boolean }[]; // Add phones property
+  activePhones?: number; // Add activePhones property
+  totalPhones?: number; // Add totalPhones property
+};
+
 export default function FranchisesPage() {
-  const [franchises, setFranchises] = useState<Franchise[]>([]);
+  const [franchises, setFranchises] = useState<LocalFranchise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    async function fetchFranchises() {
+      try {
+        setLoading(true);
+        const data = await getFranchises();
+
+        // Agregar lógica para calcular teléfonos activos y totales
+        const franchisesWithPhones = data.map((franchise: Franchise) => {
+          const activePhones =
+            franchise.phones?.filter((phone) => phone.is_active).length || 0;
+          const totalPhones = franchise.phones?.length || 0;
+          return { ...franchise, activePhones, totalPhones };
+        });
+
+        setFranchises(franchisesWithPhones);
+        setError(null);
+      } catch (err: any) {
+        console.error("Error loading franchises:", err);
+        setError(
+          "No se pudieron cargar las franquicias. Por favor, intenta de nuevo más tarde."
+        );
+        setFranchises([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     fetchFranchises();
   }, []);
-
-  async function fetchFranchises() {
-    try {
-      setLoading(true);
-      const data = await getFranchises();
-      setFranchises(data);
-      setError(null);
-    } catch (err: any) {
-      console.error("Error loading franchises:", err);
-      setError(
-        "No se pudieron cargar las franquicias. Por favor, intenta de nuevo más tarde."
-      );
-      setFranchises([]);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleDeleteFranchise(id: string) {
     try {
@@ -110,6 +134,9 @@ export default function FranchisesPage() {
                   <TableHead className="text-usina-text-secondary">
                     Estado
                   </TableHead>
+                  <TableHead className="text-usina-text-secondary">
+                    Teléfonos
+                  </TableHead>
                   <TableHead className="text-right text-usina-text-secondary">
                     Acciones
                   </TableHead>
@@ -130,6 +157,9 @@ export default function FranchisesPage() {
                     <TableCell>
                       <StatusBadge status={franchise.status || "active"} />
                     </TableCell>
+                    <TableCell className="text-center text-usina-text-primary">
+                      {franchise.activePhones}/{franchise.totalPhones}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Link href={`/dashboard/franchises/${franchise.id}`}>
@@ -139,6 +169,16 @@ export default function FranchisesPage() {
                             className="border-usina-primary/30 text-usina-primary hover:bg-usina-primary/10"
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link
+                          href={`/dashboard/franchises/phones?franchise=${franchise.name}`}
+                        >
+                          <Button
+                            variant="outline"
+                            className="border-usina-primary/30 text-usina-primary hover:bg-usina-primary/10 px-4"
+                          >
+                            Ver Teléfonos
                           </Button>
                         </Link>
                         <Button

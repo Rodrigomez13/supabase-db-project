@@ -44,14 +44,24 @@ export async function getAdById(id: string): Promise<Ad | null> {
  * Crea un nuevo anuncio
  */
 export async function createAd(data: Omit<Ad, "id" | "created_at">): Promise<Ad> {
-  return safeInsert<Ad>("ads", data)
+  const result = await safeInsert<Ad>("ads", data)
+  if (result.success && result.data) {
+    return result.data
+  } else {
+    throw new Error(result.error || "Failed to create ad")
+  }
 }
 
 /**
  * Actualiza un anuncio existente
  */
 export async function updateAd(id: string, data: Partial<Ad>): Promise<Ad> {
-  return safeUpdate<Ad>("ads", id, data)
+  const result = await safeUpdate<Ad>("ads", id, data)
+  if (result.success && result.data) {
+    return result.data
+  } else {
+    throw new Error(result.error || "Failed to update ad")
+  }
 }
 
 /**

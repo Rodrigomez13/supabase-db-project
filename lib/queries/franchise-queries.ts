@@ -38,14 +38,22 @@ export async function getFranchiseById(id: string): Promise<Franchise | null> {
  * Crea una nueva franquicia
  */
 export async function createFranchise(data: Omit<Franchise, "id" | "created_at">): Promise<Franchise> {
-  return safeInsert<Franchise>("franchises", data)
+  const result = await safeInsert<Franchise>("franchises", data)
+  if (!result.success || !result.data) {
+    throw new Error(result.error || "Failed to create franchise")
+  }
+  return result.data
 }
 
 /**
  * Actualiza una franquicia existente
  */
 export async function updateFranchise(id: string, data: Partial<Franchise>): Promise<Franchise> {
-  return safeUpdate<Franchise>("franchises", id, data)
+  const result = await safeUpdate<Franchise>("franchises", id, data)
+  if (!result.success || !result.data) {
+    throw new Error(result.error || "Failed to update franchise")
+  }
+  return result.data
 }
 
 /**
@@ -60,13 +68,13 @@ export async function deleteFranchise(id: string): Promise<{ success: boolean; e
  */
 export async function getFranchiseDistribution(): Promise<{ name: string; percentage: number }[]> {
   try {
-    const { data, error } = await safeRPC<{ name: string; percentage: number }[]>("get_franchise_distribution")
+    const result = await safeRPC<{ name: string; percentage: number }[]>("get_franchise_distribution")
 
-    if (error) {
-      throw new Error(error.message)
+    if (!Array.isArray(result)) {
+      throw new Error("Unexpected result format from get_franchise_distribution")
     }
 
-    return data
+    return result
   } catch (error) {
     console.error("Error en getFranchiseDistribution:", error)
     // Retornar datos de ejemplo en caso de error
@@ -85,13 +93,13 @@ export async function getFranchiseDistribution(): Promise<{ name: string; percen
  */
 export async function getFranchiseBalances(): Promise<{ name: string; balance: number }[]> {
   try {
-    const { data, error } = await safeRPC<{ name: string; balance: number }[]>("get_franchise_balances")
+    const result = await safeRPC<{ name: string; balance: number }[]>("get_franchise_balances")
 
-    if (error) {
-      throw new Error(error.message)
+    if (!Array.isArray(result)) {
+      throw new Error("Unexpected result format from get_franchise_balances")
     }
 
-    return data
+    return result
   } catch (error) {
     console.error("Error en getFranchiseBalances:", error)
     // Retornar datos de ejemplo en caso de error

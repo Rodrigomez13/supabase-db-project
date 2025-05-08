@@ -44,14 +44,22 @@ export async function getCampaignById(id: string): Promise<Campaign | null> {
  * Crea una nueva campaña
  */
 export async function createCampaign(data: Omit<Campaign, "id" | "created_at">): Promise<Campaign> {
-  return safeInsert<Campaign>("campaigns", data)
+  const result = await safeInsert<Campaign>("campaigns", data)
+  if (!result.success || !result.data) {
+    throw new Error(result.error || "Failed to create campaign")
+  }
+  return result.data
 }
 
 /**
  * Actualiza una campaña existente
  */
 export async function updateCampaign(id: string, data: Partial<Campaign>): Promise<Campaign> {
-  return safeUpdate<Campaign>("campaigns", id, data)
+  const result = await safeUpdate<Campaign>("campaigns", id, data)
+  if (!result.success || !result.data) {
+    throw new Error(result.error || "Failed to update campaign")
+  }
+  return result.data
 }
 
 /**

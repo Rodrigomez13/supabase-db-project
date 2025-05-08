@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Settings, PlusIcon } from "lucide-react";
@@ -15,6 +15,17 @@ import {
   getDailyProgressData,
 } from "@/lib/queries/server-queries";
 import { ServerAdsList } from "@/components/server-ads-list";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { toast } from "@/components/ui/use-toast";
+import { updateActiveFranchise } from "@/lib/update-active-franchise";
 
 export default function ServersPage() {
   const [servers, setServers] = useState<Server[]>([]);
@@ -35,6 +46,114 @@ export default function ServersPage() {
     }[];
   } | null>(null);
   const [chartLoading, setChartLoading] = useState(false);
+  const [franchises, setFranchises] = useState<{ id: string; name: string }[]>(
+    []
+  );
+  const [franchisesLoading, setFranchisesLoading] = useState(true);
+  const [activeFranchise, setActiveFranchise] = useState<string | null>(null);
+  const supabase = createClientComponentClient();
+
+  // Cargar franquicias
+  const fetchFranchises = useCallback(async () => {
+    try {
+      setFranchisesLoading(true);
+
+      // Intentar usar la función RPC primero
+      let data: any[] = [];
+      let error: any = null;
+
+      try {
+        // Intentar usar la función RPC
+        const rpcResult = await supabase.rpc("get_active_franchises");
+        if (rpcResult.error) {
+          console.log(
+            "Error al usar RPC, intentando consulta directa:",
+            rpcResult.error
+          );
+          throw rpcResult.error;
+        }
+        data = rpcResult.data || [];
+      } catch (rpcError) {
+        console.log("Fallback a consulta directa");
+        // Si falla, usar consulta directa
+        const directResult = await supabase
+          .from("franchises")
+          .select("id, name")
+          .eq("status", "active")
+          .order("name");
+        error = directResult.error;
+        data = directResult.data || [];
+      }
+
+      console.log("Franquicias obtenidas:", data);
+
+      if (error) {
+        console.error("Error al cargar franquicias:", error);
+        return;
+      }
+
+      // Si no hay franquicias activas, intentar obtener todas
+      if (data.length === 0) {
+        console.log("No hay franquicias activas, obteniendo todas");
+        const { data: allFranchises, error: allError } = await supabase
+          .from("franchises")
+          .select("id, name")
+          .order("name");
+
+        if (allError) {
+          console.error("Error al obtener todas las franquicias:", allError);
+        } else {
+          data = allFranchises || [];
+        }
+      }
+
+      setFranchises(data);
+
+      // Obtener la franquicia activa para distribución
+      try {
+        const { data: configData, error: configError } = await supabase
+          .from("system_config")
+          .select("value")
+          .eq("key", "active_franchise")
+          .single();
+
+        console.log("Configuración actual:", configData);
+
+        if (configError && configError.code !== "PGRST116") {
+          console.error("Error al cargar configuración:", configError);
+        }
+
+        // Verificar si hay una franquicia activa válida en la configuración
+        const hasValidActiveFranchise =
+          configData?.value?.id &&
+          configData.value.id !== "null" &&
+          data.some((f) => f.id === configData.value.id);
+
+        if (hasValidActiveFranchise) {
+          setActiveFranchise(configData.value.id);
+        } else if (data && data.length > 0) {
+          // Si no hay configuración válida, usar la primera franquicia
+          setActiveFranchise(data[0].id);
+
+          // Y guardarla como configuración global
+          await updateActiveFranchise(data[0].id, data[0].name, false);
+        }
+      } catch (configErr) {
+        console.error("Error al obtener configuración:", configErr);
+
+        // Si hay un error al obtener la configuración pero tenemos franquicias,
+        // usar la primera franquicia como activa
+        if (data && data.length > 0) {
+          setActiveFranchise(data[0].id);
+          await updateActiveFranchise(data[0].id, data[0].name, false);
+        }
+      }
+    } catch (err: any) {
+      console.error("Error loading franchises:", err);
+    } finally {
+      setFranchisesLoading(false);
+    }
+  }, [supabase]);
 
   const fetchServers = useCallback(async () => {
     try {
@@ -86,7 +205,8 @@ export default function ServersPage() {
 
   useEffect(() => {
     fetchServers();
-  }, [fetchServers]);
+    fetchFranchises();
+  }, [fetchServers, fetchFranchises]);
 
   useEffect(() => {
     if (selectedServer) {
@@ -94,6 +214,50 @@ export default function ServersPage() {
       fetchDailyProgressData(selectedServer);
     }
   }, [selectedServer, fetchServerMetrics, fetchDailyProgressData]);
+
+  // Suscribirse a cambios en la configuración
+  useEffect(() => {
+    const channel = supabase
+      .channel("system_config_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "system_config",
+          filter: "key=eq.active_franchise",
+        },
+        (payload) => {
+          if (payload.new && payload.new.value) {
+            const { id } = payload.new.value;
+            if (id && id !== activeFranchise) {
+              setActiveFranchise(id);
+
+              // Notificar al usuario del cambio
+              toast({
+                title: "Franquicia actualizada",
+                description: `La franquicia activa ha sido cambiada`,
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, activeFranchise]);
+
+  const handleFranchiseChange = async (franchiseId: string) => {
+    const franchise = franchises.find((f) => f.id === franchiseId);
+    if (franchise) {
+      const success = await updateActiveFranchise(franchiseId, franchise.name);
+      if (success) {
+        setActiveFranchise(franchiseId);
+      }
+    }
+  };
 
   const handleServerSelect = (serverId: string) => {
     setSelectedServer(serverId);
@@ -118,6 +282,39 @@ export default function ServersPage() {
           </p>
         </div>
         <div className="flex space-x-2">
+          <div className="flex flex-col space-y-1">
+            <Label htmlFor="distribution-franchise">Distribuyendo a:</Label>
+            <Select
+              value={activeFranchise || ""}
+              onValueChange={handleFranchiseChange}
+              disabled={franchisesLoading}
+            >
+              <SelectTrigger className="w-[200px]" id="distribution-franchise">
+                <SelectValue
+                  placeholder={
+                    franchisesLoading
+                      ? "Cargando..."
+                      : franchises.length === 0
+                      ? "No hay franquicias"
+                      : "Seleccionar franquicia"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {franchises.length > 0 ? (
+                  franchises.map((franchise) => (
+                    <SelectItem key={franchise.id} value={franchise.id}>
+                      {franchise.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-franchises" disabled>
+                    No hay franquicias activas
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
           <Link href="/dashboard/servers/config">
             <Button
               variant="outline"

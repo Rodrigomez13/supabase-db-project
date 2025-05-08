@@ -40,14 +40,22 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
  * Crea un nuevo empleado
  */
 export async function createEmployee(data: Omit<Employee, "id" | "created_at">): Promise<Employee> {
-  return safeInsert<Employee>("employees", data)
+  const result = await safeInsert<Employee>("employees", data)
+  if (result.success && result.data) {
+    return result.data
+  }
+  throw new Error(result.error || "Failed to create employee")
 }
 
 /**
  * Actualiza un empleado existente
  */
 export async function updateEmployee(id: string, data: Partial<Employee>): Promise<Employee> {
-  return safeUpdate<Employee>("employees", id, data)
+  const result = await safeUpdate<Employee>("employees", id, data)
+  if (result.success && result.data) {
+    return result.data
+  }
+  throw new Error(result.error || "Failed to update employee")
 }
 
 /**

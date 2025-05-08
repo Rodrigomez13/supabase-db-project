@@ -1,6 +1,7 @@
 "use client";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import React from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,13 @@ import {
 
 export function ThemeToggle() {
   const { setTheme, theme } = useTheme();
+
+  // Asegurarse de que el tema oscuro esté seleccionado por defecto
+  React.useEffect(() => {
+    if (theme !== "dark") {
+      setTheme("dark");
+    }
+  }, [theme, setTheme]);
 
   return (
     <DropdownMenu>

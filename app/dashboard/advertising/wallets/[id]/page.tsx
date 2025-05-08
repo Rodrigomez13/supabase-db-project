@@ -56,7 +56,7 @@ export default function EditWalletPage({ params }: { params: { id: string } }) {
     try {
       setIsLoading(true);
       const data = await safeQuery<Wallet>("wallets", {
-        filters: [{ column: "id", value: id }],
+        where: { id },
       });
 
       if (data.length > 0) {

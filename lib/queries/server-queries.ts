@@ -8,6 +8,7 @@ export interface Server {
   is_active: boolean
   description?: string
   created_at: string
+  default_franchise_id?: string | null
 }
 
 export interface ServerMetrics {
@@ -105,30 +106,45 @@ export async function deleteServer(id: string) {
   }
 }
 
-// Función para obtener métricas diarias de un servidor específico
+// FUNCIÓN UNIFICADA: Obtiene todas las métricas de un servidor sumando todos sus anuncios activos
 export async function getDailyServerMetrics(serverId: string, date?: string): Promise<ServerMetrics> {
   try {
+    console.log(`Obteniendo métricas para servidor: ${serverId}, fecha: ${date || "actual"}`)
+
     // Si no se proporciona fecha, usar la fecha actual
     const targetDate = date ?? new Date().toISOString().split("T")[0]
 
-    // Consultar datos diarios del servidor específico
-    const { data, error } = await supabase
+    // Obtener todos los anuncios del servidor sin filtrar por fecha para tener datos más completos
+    const { data: serverAdsData, error: serverAdsError } = await supabase
       .from("server_ads")
       .select("leads, loads, spent")
       .eq("server_id", serverId)
-      .eq("date", targetDate)
 
-    if (error) throw error
+    if (serverAdsError) {
+      console.error("Error al obtener anuncios del servidor:", serverAdsError)
+      throw serverAdsError
+    }
 
-    // Calcular métricas
-    const leads = data?.reduce((sum, item) => sum + (item.leads ?? 0), 0) ?? 0
-    const conversions = data?.reduce((sum, item) => sum + (item.loads ?? 0), 0) ?? 0
-    const spend = data?.reduce((sum, item) => sum + (Number(item.spent) ?? 0), 0) ?? 0
+    console.log(`Anuncios encontrados para servidor ${serverId}:`, serverAdsData?.length || 0)
+
+    // Calcular métricas sumando todos los anuncios
+    const leads = serverAdsData?.reduce((sum, item) => sum + (Number(item.leads) || 0), 0) || 0
+    const conversions = serverAdsData?.reduce((sum, item) => sum + (Number(item.loads) || 0), 0) || 0
+    const spend = serverAdsData?.reduce((sum, item) => sum + (Number(item.spent) || 0), 0) || 0
 
     // Calcular tasas y costos
     const conversion_rate = leads > 0 ? (conversions / leads) * 100 : 0
     const cost_per_lead = leads > 0 ? spend / leads : 0
     const cost_per_conversion = conversions > 0 ? spend / conversions : 0
+
+    console.log(`Métricas calculadas para servidor ${serverId}:`, {
+      leads,
+      conversions,
+      conversion_rate,
+      spend,
+      cost_per_lead,
+      cost_per_conversion,
+    })
 
     return {
       leads,
@@ -175,19 +191,21 @@ export async function getAllActiveServersDailyMetrics(date?: string): Promise<Se
     // Obtenemos los IDs de los servidores activos
     const activeServerIds = activeServers.map((server) => server.id)
 
-    // Consultar datos diarios de todos los servidores activos
-    const { data, error } = await supabase
+    // Consultar datos de todos los servidores activos sin filtrar por fecha
+    const { data: adsData, error: adsError } = await supabase
       .from("server_ads")
       .select("leads, loads, spent")
       .in("server_id", activeServerIds)
-      .eq("date", targetDate)
 
-    if (error) throw error
+    if (adsError) {
+      console.error("Error al consultar server_ads para todos los servidores:", adsError)
+      throw adsError
+    }
 
     // Calcular métricas totales
-    const leads = data?.reduce((sum, item) => sum + (item.leads ?? 0), 0) ?? 0
-    const conversions = data?.reduce((sum, item) => sum + (item.loads ?? 0), 0) ?? 0
-    const spend = data?.reduce((sum, item) => sum + (Number(item.spent) ?? 0), 0) ?? 0
+    const leads = adsData?.reduce((sum, item) => sum + (Number(item.leads) || 0), 0) || 0
+    const conversions = adsData?.reduce((sum, item) => sum + (Number(item.loads) || 0), 0) || 0
+    const spend = adsData?.reduce((sum, item) => sum + (Number(item.spent) || 0), 0) || 0
 
     // Calcular tasas y costos
     const conversion_rate = leads > 0 ? (conversions / leads) * 100 : 0
@@ -219,6 +237,8 @@ export async function getAllActiveServersDailyMetrics(date?: string): Promise<Se
 // Función para obtener datos para gráficos de progreso diario
 export async function getDailyProgressData(serverId: string) {
   try {
+    console.log(`Obteniendo datos de progreso diario para servidor: ${serverId}`)
+
     // Obtenemos datos de los últimos 7 días
     const endDate = new Date()
     const startDate = new Date()
@@ -228,13 +248,11 @@ export async function getDailyProgressData(serverId: string) {
     const startDateStr = startDate.toISOString().split("T")[0]
     const endDateStr = endDate.toISOString().split("T")[0]
 
-    // Consultamos datos diarios
+    // Consultamos todos los anuncios del servidor
     const { data, error } = await supabase
       .from("server_ads")
       .select("date, leads, loads, spent")
       .eq("server_id", serverId)
-      .gte("date", startDateStr)
-      .lte("date", endDateStr)
       .order("date")
 
     if (error) {
@@ -242,16 +260,25 @@ export async function getDailyProgressData(serverId: string) {
       throw error
     }
 
+    console.log(`Anuncios encontrados para gráfico: ${data?.length || 0}`)
+
     // Agrupamos por fecha
     const dailyData: Record<string, { leads: number; loads: number; spent: number }> = {}
+
+    // Inicializamos todas las fechas con valores cero
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dateStr = new Date(d).toISOString().split("T")[0]
+      dailyData[dateStr] = { leads: 0, loads: 0, spent: 0 }
+    }
+
+    // Sumamos los datos de todos los anuncios por fecha
     data?.forEach((item) => {
       const date = item.date
-      if (!dailyData[date]) {
-        dailyData[date] = { leads: 0, loads: 0, spent: 0 }
+      if (dailyData[date]) {
+        dailyData[date].leads += Number(item.leads) || 0
+        dailyData[date].loads += Number(item.loads) || 0
+        dailyData[date].spent += Number(item.spent) || 0
       }
-      dailyData[date].leads += item.leads ?? 0
-      dailyData[date].loads += item.loads ?? 0
-      dailyData[date].spent += item.spent ?? 0
     })
 
     // Generamos array de fechas para los últimos 7 días
@@ -269,14 +296,14 @@ export async function getDailyProgressData(serverId: string) {
       datasets: [
         {
           label: "Leads",
-          data: dates.map((date) => dailyData[date]?.leads ?? 0),
+          data: dates.map((date) => dailyData[date]?.leads || 0),
           borderColor: "#10B981",
           backgroundColor: "rgba(16, 185, 129, 0.2)",
           tension: 0.4,
         },
         {
-          label: "Cargas",
-          data: dates.map((date) => dailyData[date]?.loads ?? 0),
+          label: "Conversiones",
+          data: dates.map((date) => dailyData[date]?.loads || 0),
           borderColor: "#3B82F6",
           backgroundColor: "rgba(59, 130, 246, 0.2)",
           tension: 0.4,
@@ -284,39 +311,98 @@ export async function getDailyProgressData(serverId: string) {
       ],
     }
 
+    console.log("Datos de gráfico generados:", chartData)
     return chartData
   } catch (error) {
     console.error(`Error in getDailyProgressData: ${error}`)
-    return null
+
+    // Devolver datos vacíos para el gráfico
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - 6)
+
+    const dates: string[] = []
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      dates.push(new Date(d).toISOString().split("T")[0])
+    }
+
+    return {
+      labels: dates.map((date) => {
+        const d = new Date(date)
+        return d.toLocaleDateString("es-ES", { weekday: "short" })
+      }),
+      datasets: [
+        {
+          label: "Leads",
+          data: dates.map(() => 0),
+          borderColor: "#10B981",
+          backgroundColor: "rgba(16, 185, 129, 0.2)",
+          tension: 0.4,
+        },
+        {
+          label: "Conversiones",
+          data: dates.map(() => 0),
+          borderColor: "#3B82F6",
+          backgroundColor: "rgba(59, 130, 246, 0.2)",
+          tension: 0.4,
+        },
+      ],
+    }
   }
 }
 
 // Función para obtener los anuncios de un servidor
 export async function getServerAds(serverId: string) {
   try {
+    console.log(`Obteniendo anuncios para servidor: ${serverId}`)
+
     const { data, error } = await supabase
       .from("server_ads")
       .select(`
-       id,
-       server_id,
-       ad_id,
-       leads,
-       loads,
-       spent,
-       date,
-       ads (
-         name,
-         ad_id,
-         description
-       )
-     `)
+        id,
+        server_id,
+        ad_id,
+        leads,
+        loads,
+        spent,
+        date,
+        ads (
+          name,
+          ad_id,
+          description
+        )
+      `)
       .eq("server_id", serverId)
       .order("date", { ascending: false })
 
-    if (error) throw error
-    return data ?? []
+    if (error) {
+      console.error(`Error al obtener anuncios del servidor: ${error.message}`)
+      throw error
+    }
+
+    console.log(`Anuncios obtenidos: ${data?.length || 0}`)
+    return data || []
   } catch (error) {
     console.error(`Error in getServerAds for serverId ${serverId}:`, error)
     return []
+  }
+}
+
+export async function updateServerFranchise(
+  serverId: string,
+  franchiseId: string | null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase.from("servers").update({ default_franchise_id: franchiseId }).eq("id", serverId)
+
+    if (error) {
+      console.error(`Error updating server's default franchise:`, error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    console.error(`Error in updateServerFranchise for serverId ${serverId}:`, error)
+    return { success: false, error: error.message }
   }
 }

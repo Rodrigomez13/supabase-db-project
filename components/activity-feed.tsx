@@ -1,67 +1,54 @@
-import { Bell } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface ActivityProps {
+interface Activity {
   id: string;
-  user: string;
-  action: string;
-  target: string;
-  server?: string;
-  time: string;
+  type: string;
+  description: string;
+  timestamp: string;
+  user?: string;
 }
 
 interface ActivityFeedProps {
-  activities: ActivityProps[];
-  loading?: boolean;
+  activities: Activity[];
 }
 
-export function ActivityFeed({
-  activities,
-  loading = false,
-}: ActivityFeedProps) {
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-    );
-  }
-
-  if (!activities || activities.length === 0) {
-    return (
-      <p className="text-sm text-usina-text-secondary">
-        No hay actividades recientes.
-      </p>
-    );
-  }
-
+export function ActivityFeed({ activities }: ActivityFeedProps) {
   return (
-    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-      {activities.map((activity) => (
-        <div key={activity.id} className="flex items-start gap-3">
-          <div className="mt-1 rounded-full bg-usina-primary/20 p-1 flex-shrink-0">
-            <Bell className="h-4 w-4 text-usina-primary" />
+    <Card className="border bg-background/5">
+      <CardHeader>
+        <CardTitle>Actividad Reciente</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {activities && activities.length > 0 ? (
+          <div className="space-y-4">
+            {activities.map((activity) => (
+              <div key={activity.id} className="flex items-start space-x-4">
+                <div className="w-2 h-2 mt-1 rounded-full bg-primary" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{activity.description}</p>
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <span>{activity.user || "Sistema"}</span>
+                    <span className="mx-1">•</span>
+                    <span>
+                      {new Date(activity.timestamp).toLocaleString("es-ES", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="space-y-1 min-w-0">
-            <p className="text-sm text-usina-text-primary break-words">
-              <span className="font-medium">{activity.user}</span>{" "}
-              {activity.action}{" "}
-              <span className="font-medium">{activity.target}</span>
-              {activity.server && (
-                <>
-                  {" "}
-                  en <span className="font-medium">{activity.server}</span>
-                </>
-              )}
-            </p>
-            <p className="text-xs text-usina-text-secondary">{activity.time}</p>
-          </div>
-        </div>
-      ))}
-    </div>
+        ) : (
+          <p className="text-center py-4 text-muted-foreground">
+            No hay actividad reciente para mostrar
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

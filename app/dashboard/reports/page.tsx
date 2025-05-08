@@ -99,7 +99,7 @@ export default function ReportsPage() {
       let serverData: ServerPerformance[] = [];
       try {
         serverData = await safeQuery<ServerPerformance>("server_performance", {
-          orderBy: { column: "total_leads", order: "desc" },
+          orderBy: { column: "total_leads", ascending: false },
         });
       } catch (err) {
         console.error("Error al consultar server_performance:", err);

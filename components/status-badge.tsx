@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import type { BadgeVariant } from "@/types/lead-tracking";
 
 interface StatusBadgeProps {
   status: string;
@@ -6,20 +7,73 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const isActive =
-    status.toLowerCase() === "active" || status.toLowerCase() === "activo";
+  const getStatusConfig = (
+    status: string
+  ): { label: string; variant: BadgeVariant } => {
+    switch (status) {
+      case "active":
+        return {
+          label: "Activo",
+          variant: "success",
+        };
+      case "paused":
+        return {
+          label: "Pausada",
+          variant: "warning",
+        };
+      case "scheduled":
+        return {
+          label: "Programada",
+          variant: "default",
+        };
+      case "completed":
+        return {
+          label: "Completada",
+          variant: "success",
+        };
+      case "error":
+        return {
+          label: "Error",
+          variant: "destructive",
+        };
+      case "converted":
+        return {
+          label: "Convertido",
+          variant: "success",
+        };
+      case "lost":
+        return {
+          label: "Perdido",
+          variant: "destructive",
+        };
+      case "contacted":
+        return {
+          label: "Contactado",
+          variant: "warning",
+        };
+      case "pending":
+        return {
+          label: "Pendiente",
+          variant: "default",
+        };
+      default:
+        return {
+          label: status,
+          variant: "secondary",
+        };
+    }
+  };
+
+  const config = getStatusConfig(status);
 
   return (
     <span
       className={cn(
-        "px-2 py-1 rounded-full text-xs font-medium",
-        isActive
-          ? "bg-usina-primary/20 text-usina-primary border border-usina-primary/30"
-          : "bg-usina-danger/20 text-usina-danger border border-usina-danger/30",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
         className
       )}
     >
-      {isActive ? "Activo" : "Inactivo"}
+      {config.label}
     </span>
   );
 }

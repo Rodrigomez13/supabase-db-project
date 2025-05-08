@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -22,7 +19,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { safeQuery, safeInsert } from "@/lib/safe-query";
+import { safeQuery } from "@/lib/safe-query";
+import { DatePicker } from "@/components/ui/date-picker";
+import { PlusCircle, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface Server {
   id: string;
@@ -61,32 +61,23 @@ interface LeadDistribution {
 }
 
 export default function LeadDistributionPage() {
+  const router = useRouter();
   const [servers, setServers] = useState<Server[]>([]);
   const [franchises, setFranchises] = useState<Franchise[]>([]);
-  const [franchisePhones, setFranchisePhones] = useState<FranchisePhone[]>([]);
   const [distributions, setDistributions] = useState<LeadDistribution[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    server_id: "",
-    franchise_id: "",
-    franchise_phone_id: "",
-    leads_count: 0,
-    date: new Date().toISOString().split("T")[0],
-  });
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
+  const [filterServer, setFilterServer] = useState<string>("");
+  const [filterFranchise, setFilterFranchise] = useState<string>("");
 
   useEffect(() => {
     fetchData();
   }, []);
 
   useEffect(() => {
-    if (formData.franchise_id) {
-      fetchFranchisePhones(formData.franchise_id);
-    } else {
-      setFranchisePhones([]);
-    }
-  }, [formData.franchise_id]);
+    fetchDistributions();
+  }, [filterDate, filterServer, filterFranchise]);
 
   async function fetchData() {
     try {
@@ -94,7 +85,7 @@ export default function LeadDistributionPage() {
 
       // Fetch servers
       const serversData = await safeQuery<Server>("servers", {
-        filters: [{ column: "is_active", value: true }],
+        where: { is_active: true },
         orderBy: { column: "name" },
       });
 
@@ -103,20 +94,8 @@ export default function LeadDistributionPage() {
         orderBy: { column: "name" },
       });
 
-      // Fetch recent distributions
-      const distributionsData = await safeQuery<LeadDistribution>(
-        "lead_distributions",
-        {
-          relationships:
-            "servers(name), franchises(name), franchise_phones(phone_number)",
-          orderBy: { column: "created_at", ascending: false },
-          limit: 10,
-        }
-      );
-
       setServers(serversData);
       setFranchises(franchisesData);
-      setDistributions(distributionsData);
       setError(null);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -128,60 +107,67 @@ export default function LeadDistributionPage() {
     }
   }
 
-  async function fetchFranchisePhones(franchiseId: string) {
+  async function fetchDistributions() {
     try {
-      const data = await safeQuery<FranchisePhone>("franchise_phones", {
-        filters: [{ column: "franchise_id", value: franchiseId }],
-        orderBy: { column: "order_number" },
-      });
+      setLoading(true);
 
-      setFranchisePhones(data);
+      // Construir filtros
+      const filters: any = {};
+
+      if (filterDate) {
+        filters.date = filterDate.toISOString().split("T")[0];
+      }
+
+      if (filterServer) {
+        filters.server_id = filterServer;
+      }
+
+      if (filterFranchise) {
+        filters.franchise_id = filterFranchise;
+      }
+
+      // Fetch distributions with filters
+      const distributionsData = await safeQuery<LeadDistribution>(
+        "lead_distributions",
+        {
+          relationships:
+            "servers(name), franchises(name), franchise_phones(phone_number)",
+          where: filters,
+          orderBy: { column: "created_at", ascending: false },
+          limit: 50,
+        }
+      );
+
+      setDistributions(distributionsData);
+      setError(null);
     } catch (error) {
-      console.error("Error fetching franchise phones:", error);
+      console.error("Error fetching distributions:", error);
+      setError(
+        "No se pudieron cargar las distribuciones. Por favor, intenta de nuevo más tarde."
+      );
+    } finally {
+      setLoading(false);
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const result = await safeInsert("lead_distributions", formData);
-
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-
-      // Reset form and refresh data
-      setFormData({
-        server_id: "",
-        franchise_id: "",
-        franchise_phone_id: "",
-        leads_count: 0,
-        date: new Date().toISOString().split("T")[0],
-      });
-      fetchData();
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const resetFilters = () => {
+    setFilterDate(new Date());
+    setFilterServer("");
+    setFilterFranchise("");
   };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Distribución de Leads</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Distribución de Leads</h1>
+        <Button
+          onClick={() => router.push("/dashboard/lead-distribution/assign")}
+          className="bg-primary hover:bg-primary/90"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Asignar Leads
+        </Button>
+      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
@@ -189,116 +175,76 @@ export default function LeadDistributionPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Asignar Leads</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="date">Fecha</Label>
-                <Input
-                  id="date"
-                  name="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex justify-between items-center">
+            <span>Filtros</span>
+            <Button variant="outline" size="sm" onClick={resetFilters}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reiniciar
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="date-filter">Fecha</Label>
+              <DatePicker date={filterDate} setDate={setFilterDate} />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="server_id">Servidor</Label>
-                <Select
-                  onValueChange={(value) =>
-                    handleSelectChange("server_id", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un servidor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {servers.map((server) => (
-                      <SelectItem key={server.id} value={server.id}>
-                        {server.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="server-filter">Servidor</Label>
+              <Select value={filterServer} onValueChange={setFilterServer}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos los servidores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los servidores</SelectItem>
+                  {servers.map((server) => (
+                    <SelectItem key={server.id} value={server.id}>
+                      {server.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="franchise_id">Franquicia</Label>
-                <Select
-                  onValueChange={(value) =>
-                    handleSelectChange("franchise_id", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una franquicia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {franchises.map((franchise) => (
-                      <SelectItem key={franchise.id} value={franchise.id}>
-                        {franchise.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="franchise-filter">Franquicia</Label>
+              <Select
+                value={filterFranchise}
+                onValueChange={setFilterFranchise}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas las franquicias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las franquicias</SelectItem>
+                  {franchises.map((franchise) => (
+                    <SelectItem key={franchise.id} value={franchise.id}>
+                      {franchise.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="franchise_phone_id">Teléfono</Label>
-                <Select
-                  onValueChange={(value) =>
-                    handleSelectChange("franchise_phone_id", value)
-                  }
-                  disabled={franchisePhones.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un teléfono" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {franchisePhones.map((phone) => (
-                      <SelectItem key={phone.id} value={phone.id}>
-                        {phone.phone_number} (#{phone.order_number})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="leads_count">Cantidad de Leads</Label>
-                <Input
-                  id="leads_count"
-                  name="leads_count"
-                  type="number"
-                  min="1"
-                  value={formData.leads_count}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Asignando..." : "Asignar Leads"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuciones Recientes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center">Cargando distribuciones...</div>
-            ) : distributions.length === 0 ? (
-              <div className="text-center">No hay distribuciones recientes</div>
-            ) : (
+      <Card>
+        <CardHeader>
+          <CardTitle>Distribuciones de Leads</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-4">Cargando distribuciones...</div>
+          ) : distributions.length === 0 ? (
+            <div className="text-center py-4">
+              No hay distribuciones para los filtros seleccionados
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -307,6 +253,7 @@ export default function LeadDistributionPage() {
                     <TableHead>Franquicia</TableHead>
                     <TableHead>Teléfono</TableHead>
                     <TableHead>Leads</TableHead>
+                    <TableHead>Creado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -321,14 +268,17 @@ export default function LeadDistributionPage() {
                         {dist.franchise_phones?.phone_number}
                       </TableCell>
                       <TableCell>{dist.leads_count}</TableCell>
+                      <TableCell>
+                        {new Date(dist.created_at).toLocaleString()}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

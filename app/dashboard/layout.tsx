@@ -23,10 +23,14 @@ import {
   DollarSign,
   Wallet,
   CreditCard,
+  Send,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UsinaLogo } from "@/components/usina-logo";
 import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
+import { GlobalFranchiseSelector } from "@/components/global-franchise-selector";
+import { NavFranchiseIndicator } from "@/components/nav-franchise-indicator";
 
 export default function DashboardLayout({
   children,
@@ -143,6 +147,9 @@ export default function DashboardLayout({
         <div className="usina-sidebar-logo">
           <UsinaLogo />
         </div>
+        <div className="flex items-center space-x-4">
+          <NavFranchiseIndicator />
+        </div>
         <nav className="usina-sidebar-nav">
           <ul className="space-y-1">
             <li>
@@ -176,6 +183,18 @@ export default function DashboardLayout({
               >
                 <Store className="usina-sidebar-icon" />
                 Franquicias
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/dashboard/distribution"
+                className={cn(
+                  "usina-sidebar-nav-item",
+                  pathname === "/dashboard/distribution" && "active"
+                )}
+              >
+                <Send className="usina-sidebar-icon" />
+                Distribución
               </Link>
             </li>
             <li>
@@ -481,6 +500,7 @@ export default function DashboardLayout({
                 {getPageDescription()}
               </p>
             </div>
+
             <div className="flex items-center space-x-4">
               <Button variant="outline" size="icon" className="relative">
                 <BellIcon className="h-5 w-5" />
