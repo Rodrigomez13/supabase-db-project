@@ -39,7 +39,7 @@ interface BusinessManager {
   created_at: string;
   portfolios?: {
     name: string;
-  };
+  }[];
 }
 
 interface Campaign {
@@ -124,12 +124,7 @@ export default function BusinessManagersPage() {
 
       if (bmError) throw bmError;
 
-      setBusinessManagers(
-        (bms || []).map((bm) => ({
-          ...bm,
-          portfolios: bm.portfolios?.[0] || undefined, // Adjust portfolios to match the expected structure
-        }))
-      );
+      setBusinessManagers(bms || []);
       setError(null);
     } catch (err: any) {
       console.error("Error loading business managers:", err);
@@ -173,6 +168,11 @@ export default function BusinessManagersPage() {
     try {
       setLoadingCampaigns((prev) => ({ ...prev, [bmId]: true }));
 
+      // Verificar que bmId es válido antes de hacer la consulta
+      if (!bmId) {
+        throw new Error("ID de Business Manager no válido");
+      }
+
       const { data, error } = await supabase
         .from("campaigns")
         .select("id, name, campaign_id, objective, status")
@@ -184,7 +184,10 @@ export default function BusinessManagersPage() {
       setCampaignsData((prev) => ({ ...prev, [bmId]: data || [] }));
       toggleBM(bmId);
     } catch (err: any) {
-      console.error(`Error loading campaigns for BM ${bmId}:`, err);
+      console.error(
+        `Error loading campaigns for BM ${bmId}:`,
+        err.message || err
+      );
       setCampaignsData((prev) => ({ ...prev, [bmId]: [] }));
     } finally {
       setLoadingCampaigns((prev) => ({ ...prev, [bmId]: false }));
@@ -275,15 +278,15 @@ export default function BusinessManagersPage() {
     const matchesSearch =
       bm.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       bm.bm_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (bm.portfolios?.name || "")
+      (bm.portfolios?.map((portfolio) => portfolio.name).join(", ") || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
     // Filtrar por estado
     const matchesStatus =
       activeTab === "all" ||
-      (activeTab === "Activo" && bm.status === "Activo") ||
-      (activeTab === "inactive" && bm.status !== "Activo");
+      (activeTab === "active" && bm.status === "active") ||
+      (activeTab === "inactive" && bm.status !== "active");
 
     return matchesSearch && matchesStatus;
   });
@@ -322,7 +325,7 @@ export default function BusinessManagersPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
           <TabsList>
             <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="Activo">Activos</TabsTrigger>
+            <TabsTrigger value="active">Activos</TabsTrigger>
             <TabsTrigger value="inactive">Inactivos</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -385,14 +388,21 @@ export default function BusinessManagersPage() {
                         </button>
                       </TableCell>
                       <TableCell>{bm.bm_id}</TableCell>
-                      <TableCell>{bm.portfolios?.name || "N/A"}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const portfolioNames = bm.portfolios
+                            ?.map((portfolio) => portfolio.name)
+                            .join(", ");
+                          return portfolioNames || "N/A";
+                        })()}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={
-                            bm.status === "Activo" ? "success" : "secondary"
+                            bm.status === "active" ? "success" : "secondary"
                           }
                         >
-                          {bm.status === "Activo" ? "Activo" : "Inactivo"}
+                          {bm.status === "active" ? "Activo" : "Inactivo"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -496,12 +506,12 @@ export default function BusinessManagersPage() {
                                         <TableCell>
                                           <Badge
                                             variant={
-                                              campaign.status === "Activo"
+                                              campaign.status === "active"
                                                 ? "success"
                                                 : "secondary"
                                             }
                                           >
-                                            {campaign.status === "Activo"
+                                            {campaign.status === "active"
                                               ? "Activa"
                                               : "Inactiva"}
                                           </Badge>
@@ -618,13 +628,13 @@ export default function BusinessManagersPage() {
                                                             <Badge
                                                               variant={
                                                                 adSet.status ===
-                                                                "Activo"
+                                                                "active"
                                                                   ? "success"
                                                                   : "secondary"
                                                               }
                                                             >
                                                               {adSet.status ===
-                                                              "Activo"
+                                                              "active"
                                                                 ? "Activo"
                                                                 : "Inactivo"}
                                                             </Badge>
@@ -774,13 +784,13 @@ export default function BusinessManagersPage() {
                                                                               <Badge
                                                                                 variant={
                                                                                   ad.status ===
-                                                                                  "Activo"
+                                                                                  "active"
                                                                                     ? "success"
                                                                                     : "secondary"
                                                                                 }
                                                                               >
                                                                                 {ad.status ===
-                                                                                "Activo"
+                                                                                "active"
                                                                                   ? "Activo"
                                                                                   : "Inactivo"}
                                                                               </Badge>

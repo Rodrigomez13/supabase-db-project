@@ -22,6 +22,8 @@ export default function AdvertisingLayout({
       setActiveTab("business-managers");
     } else if (pathname.includes("/dashboard/advertising/apis")) {
       setActiveTab("apis");
+    } else if (pathname.includes("/dashboard/advertising/distribution")) {
+      setActiveTab("distribution");
     }
   }, [pathname]);
 
@@ -39,6 +41,9 @@ export default function AdvertisingLayout({
       case "apis":
         router.push("/dashboard/advertising/apis");
         break;
+      case "distribution":
+        router.push("/dashboard/advertising/distribution");
+        break;
     }
   };
 
@@ -53,21 +58,27 @@ export default function AdvertisingLayout({
           <TabsList className="w-full justify-start rounded-none border-b-0 bg-transparent p-0">
             <TabsTrigger
               value="overview"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=Activo]:border-primary data-[state=Activo]:bg-transparent data-[state=Activo]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               Resumen
             </TabsTrigger>
             <TabsTrigger
               value="business-managers"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=Activo]:border-primary data-[state=Activo]:bg-transparent data-[state=Activo]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               Business Managers
             </TabsTrigger>
             <TabsTrigger
               value="apis"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=Activo]:border-primary data-[state=Activo]:bg-transparent data-[state=Activo]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               APIs
+            </TabsTrigger>
+            <TabsTrigger
+              value="distribution"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              Distribución
             </TabsTrigger>
           </TabsList>
         </Tabs>

@@ -403,7 +403,7 @@ export default function FranchisePhonesPage() {
                             className="bg-red-100 text-red-800 hover:bg-red-200"
                           >
                             <X className="h-3.5 w-3.5 mr-1" />
-                            InActivo
+                            Inactivo
                           </Badge>
                         )}
                       </TableCell>
@@ -771,7 +771,7 @@ export default function FranchisePhonesPage() {
             <div className="py-4">
               <p className="font-medium">Número: {currentPhone.phone_number}</p>
               <p className="text-muted-foreground text-sm mt-1">
-                {currentPhone.is_Activo ? "Activo" : "InActivo"}
+                {currentPhone.is_Activo ? "Activo" : "Inactivo"}
                 {currentPhone.category ? ` • ${currentPhone.category}` : ""}
               </p>
             </div>

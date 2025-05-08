@@ -227,7 +227,7 @@ export default function FranchiseDataPage() {
                             <Badge
                               variant={item.Activo ? "default" : "secondary"}
                             >
-                              {item.Activo ? "Activo" : "InActivo"}
+                              {item.Activo ? "Activo" : "Inactivo"}
                             </Badge>
                           </TableCell>
                         </TableRow>
