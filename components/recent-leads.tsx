@@ -1,48 +1,57 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
-import { Button } from "@/components/ui/button"
-import { Eye, Loader2 } from "lucide-react"
-import Link from "next/link"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Button } from "@/components/ui/button";
+import { Eye, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 interface Lead {
-  id: string
-  name: string
-  phone: string
-  email: string
-  date: string
-  status: string
-  franchise_name: string
-  phone_number: string
-  created_at: string
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  date: string;
+  status: string;
+  franchise_name: string;
+  phone_number: string;
+  created_at: string;
 }
 
 export function RecentLeads() {
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
-  const supabase = createClientComponentClient()
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     async function fetchLeads() {
       try {
-        setLoading(true)
+        setLoading(true);
 
         // Obtener leads recientes
         const { data, error } = await supabase
           .from("leads")
-          .select(`
+          .select(
+            `
             id, name, phone, email, date, status, created_at,
             franchises (name),
             franchise_phones (phone_number)
-          `)
+          `
+          )
           .order("created_at", { ascending: false })
-          .limit(10)
+          .limit(10);
 
-        if (error) throw error
+        if (error) throw error;
 
         // Formatear los datos
         const formattedLeads = data.map((lead) => ({
@@ -52,47 +61,61 @@ export function RecentLeads() {
           email: lead.email || "Sin email",
           date: lead.date,
           status: lead.status,
-          franchise_name: Array.isArray(lead.franchises) && lead.franchises[0]?.name || "Sin franquicia",
-          phone_number: Array.isArray(lead.franchise_phones) && lead.franchise_phones[0]?.phone_number || "Sin teléfono asignado",
+          franchise_name:
+            (Array.isArray(lead.franchises) && lead.franchises[0]?.name) ||
+            "Sin franquicia",
+          phone_number:
+            (Array.isArray(lead.franchise_phones) &&
+              lead.franchise_phones[0]?.phone_number) ||
+            "Sin teléfono asignado",
           created_at: lead.created_at,
-        }))
+        }));
 
-        setLeads(formattedLeads)
+        setLeads(formattedLeads);
       } catch (error) {
-        console.error("Error fetching leads:", error)
+        console.error("Error fetching leads:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    fetchLeads()
-  }, [supabase])
+    fetchLeads();
+  }, [supabase]);
 
   // Función para renderizar el badge de estado
   const renderStatusBadge = (status: string) => {
     switch (status) {
-      case "pending":
+      case "Pendiente":
         return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-700 border-yellow-200"
+          >
             Pendiente
           </Badge>
-        )
+        );
       case "converted":
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-200"
+          >
             Convertido
           </Badge>
-        )
+        );
       case "rejected":
         return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-700 border-red-200"
+          >
             Rechazado
           </Badge>
-        )
+        );
       default:
-        return <Badge variant="outline">Desconocido</Badge>
+        return <Badge variant="outline">Desconocido</Badge>;
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -106,7 +129,7 @@ export function RecentLeads() {
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -121,7 +144,9 @@ export function RecentLeads() {
       </CardHeader>
       <CardContent>
         {leads.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">No hay leads recientes para mostrar</div>
+          <div className="text-center py-4 text-muted-foreground">
+            No hay leads recientes para mostrar
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -142,7 +167,9 @@ export function RecentLeads() {
                     <TableCell>{lead.phone}</TableCell>
                     <TableCell>{lead.franchise_name}</TableCell>
                     <TableCell>{renderStatusBadge(lead.status)}</TableCell>
-                    <TableCell>{new Date(lead.date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {new Date(lead.date).toLocaleDateString()}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Link href={`/dashboard/leads/${lead.id}`}>
                         <Button variant="ghost" size="sm">
@@ -159,5 +186,5 @@ export function RecentLeads() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

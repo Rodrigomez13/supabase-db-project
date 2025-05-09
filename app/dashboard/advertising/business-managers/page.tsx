@@ -390,10 +390,12 @@ export default function BusinessManagersPage() {
                       <TableCell>{bm.bm_id}</TableCell>
                       <TableCell>
                         {(() => {
-                          const portfolioNames = bm.portfolios
-                            ?.map((portfolio) => portfolio.name)
-                            .join(", ");
-                          return portfolioNames || "N/A";
+                          const portfolioNames = Array.isArray(bm.portfolios)
+                          ? bm.portfolios
+                            .map((portfolio) => portfolio.name)
+                            .join(", ")
+                          : "N/A";
+                          return portfolioNames;
                         })()}
                       </TableCell>
                       <TableCell>

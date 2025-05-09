@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, PlusIcon, MinusIcon } from "lucide-react";
+import { Trash2, PlusIcon, MinusIcon, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import {
@@ -30,6 +30,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+import { assignLeadsToFranchise } from "@/lib/lead-distribution-utils";
+import { getActiveFranchise } from "@/lib/update-active-franchise";
 
 interface ServerAd {
   id: string;
@@ -71,13 +75,29 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
   const [serverCoefficient, setServerCoefficient] = useState<number>(1);
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("Activo");
+  const [activeFranchise, setActiveFranchise] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [assigningLoad, setAssigningLoad] = useState(false);
 
   useEffect(() => {
     if (serverId) {
       fetchServerAds();
       fetchServerInfo();
+      fetchActiveFranchise();
     }
   }, [serverId]);
+
+  async function fetchActiveFranchise() {
+    try {
+      const franchise = await getActiveFranchise();
+      console.log("Franquicia activa obtenida:", franchise);
+      setActiveFranchise(franchise);
+    } catch (err) {
+      console.error("Error al obtener franquicia activa:", err);
+    }
+  }
 
   async function fetchServerInfo() {
     try {
@@ -106,26 +126,26 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
         .from("server_ads")
         .select(
           `
-         id, 
-         server_id,
-         ad_id,
-         api_id,
-         daily_budget,
-         leads,
-         loads,
-         spent,
-         date,
-         status,
-         ads (
-           name,
-           ad_id,
-           adset_id,
-           status
-         ),
-         apis (
-           name
-         )
-       `
+          id, 
+          server_id,
+          ad_id,
+          api_id,
+          daily_budget,
+          leads,
+          loads,
+          spent,
+          date,
+          status,
+          ads (
+            name,
+            ad_id,
+            adset_id,
+            status
+          ),
+          apis (
+            name
+          )
+        `
         )
         .eq("server_id", serverId);
 
@@ -198,7 +218,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
             conversion_rate: conversion_rate,
             cost_per_lead: cost_per_lead,
             cost_per_load: cost_per_load,
-            status: item.status || "Activo", // Estado por defecto
+            status: item.status || "Activo", // Estado por defecto actualizado
           };
         })
       );
@@ -230,15 +250,15 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
         .from("ads")
         .select(
           `
-         id, 
-         name,
-         ad_id,
-         status,
-         ad_sets (
-           name,
-           id
-         )
-       `
+          id, 
+          name,
+          ad_id,
+          status,
+          ad_sets (
+            name,
+            id
+          )
+        `
         )
         .not(
           "id",
@@ -288,7 +308,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
           loads: 0,
           spent: 0,
           date: today,
-          status: "Activo", // Estado inicial
+          status: "Activo", // Estado inicial actualizado
         })
         .select();
 
@@ -312,13 +332,75 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
       const adToUpdate = ads.find((ad) => ad.id === id);
       if (!adToUpdate) return;
 
-      // Actualizar en la base de datos
-      const { error } = await supabase
+      // Primero actualizar el contador en server_ads
+      const { error: updateError } = await supabase
         .from("server_ads")
         .update({ [field]: value })
         .eq("id", id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Si estamos incrementando loads (conversiones), asignar a la franquicia seleccionada
+      if (
+        field === "loads" &&
+        value > (adToUpdate.loads || 0) &&
+        activeFranchise
+      ) {
+        // Calcular cuántas conversiones nuevas se están agregando
+        const newLoads = value - (adToUpdate.loads || 0);
+        console.log(
+          `Asignando ${newLoads} nuevas conversiones a ${activeFranchise.name}`
+        );
+
+        setAssigningLoad(true);
+
+        try {
+          // Asignar cada nueva conversión a la franquicia seleccionada
+          let successCount = 0;
+          const errorMessages = [];
+
+          for (let i = 0; i < newLoads; i++) {
+            const result = await assignLeadsToFranchise(
+              serverId,
+              activeFranchise.id,
+              1
+            );
+            if (result.success) {
+              successCount++;
+            } else {
+              errorMessages.push(result.error);
+              console.error(
+                "Error al asignar conversión a franquicia:",
+                result.error
+              );
+            }
+          }
+
+          if (successCount > 0) {
+            toast({
+              title: "Conversiones registradas",
+              description: `Se han registrado ${successCount} de ${newLoads} conversión(es)`,
+            });
+          }
+
+          if (errorMessages.length > 0) {
+            toast({
+              title: "Errores al asignar conversiones",
+              description: `Ocurrieron ${errorMessages.length} errores. Primer error: ${errorMessages[0]}`,
+              variant: "destructive",
+            });
+          }
+        } catch (err: any) {
+          console.error(`Error al asignar conversiones:`, err);
+          toast({
+            title: "Error",
+            description: `Error al asignar conversiones: ${err.message}`,
+            variant: "destructive",
+          });
+        } finally {
+          setAssigningLoad(false);
+        }
+      }
 
       // Actualizar estado local
       const updatedAds = ads.map((ad) => {
@@ -341,8 +423,13 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
       });
 
       setAds(updatedAds);
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Error updating ${field}:`, err);
+      toast({
+        title: "Error",
+        description: `Error al actualizar: ${err.message}`,
+        variant: "destructive",
+      });
     }
   }
 
@@ -507,13 +594,13 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
     switch (status) {
       case "Activo":
         return "outline" as const;
-      case "Pausada":
+      case "Inactivo":
         return "secondary" as const;
       case "Error":
         return "destructive" as const;
       case "Error_de_Entrega":
-        return "default" as const;
-      case "BM_Deshabilitado":
+        return "warning" as const;
+      case "BM_Deshabilitada":
         return "destructive" as const;
       default:
         return "outline" as const;
@@ -525,15 +612,15 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
     switch (status) {
       case "Activo":
         return "Activo";
-      case "Pausada":
-        return "Pausada";
+      case "Inactivo":
+        return "Inactivo";
       case "Error":
-        return "Error de Anuncio";
+        return "Error";
       case "Error_de_Entrega":
         return "Error de Entrega";
-      case "BM_Deshabilitado":
-        return "BM Deshabilitado";
-      case "Cuenta":
+      case "BM_Deshabilitada":
+        return "BM Deshabilitada";
+      case "Cuenta_Deshabilitada":
         return "Cuenta Deshabilitada";
       case "Violación_de_Políticas":
         return "Violación de Políticas";
@@ -675,6 +762,26 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
         </div>
       )}
 
+      {activeFranchise ? (
+        <Alert className="bg-green-50 border-green-200">
+          <AlertTitle className="text-green-700 flex items-center">
+            Franquicia activa: {activeFranchise.name}
+          </AlertTitle>
+          <AlertDescription className="text-green-600">
+            Las conversiones se asignarán automáticamente a esta franquicia
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No hay franquicia seleccionada</AlertTitle>
+          <AlertDescription>
+            Selecciona una franquicia en el menú superior para asignar
+            conversiones
+          </AlertDescription>
+        </Alert>
+      )}
+
       {loading ? (
         <div className="text-center py-4 text-usina-text-secondary">
           Cargando anuncios...
@@ -774,15 +881,13 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Activo">Activo</SelectItem>
-                            <SelectItem value="Pausada">Pausada</SelectItem>
-                            <SelectItem value="Error">
-                              Error de Anuncio
-                            </SelectItem>
+                            <SelectItem value="Inactivo">Inactivo</SelectItem>
+                            <SelectItem value="Error">Error</SelectItem>
                             <SelectItem value="Error_de_Entrega">
                               Error de Entrega
                             </SelectItem>
-                            <SelectItem value="BM_Deshabilitado">
-                              BM Deshabilitado
+                            <SelectItem value="BM_Deshabilitada">
+                              BM Deshabilitada
                             </SelectItem>
                             <SelectItem value="Cuenta_Deshabilitada">
                               Cuenta Deshabilitada
@@ -814,7 +919,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                       </div>
                     ) : (
                       <Badge
-                        variant={getStatusBadgeVariant(ad.status ?? "Activo")}
+                        variant={getStatusBadgeVariant(ad.status || "Activo")}
                         className="cursor-pointer"
                         onClick={() => {
                           setEditingStatus(ad.id);
@@ -881,7 +986,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                             Math.max(0, (ad.loads || 0) - 1)
                           )
                         }
-                        disabled={ad.status !== "Activo"}
+                        disabled={ad.status !== "Activo" || assigningLoad}
                       >
                         <MinusIcon className="h-3 w-3" />
                       </Button>
@@ -896,7 +1001,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
-                        disabled={ad.status !== "Activo"}
+                        disabled={ad.status !== "Activo" || assigningLoad}
                       />
                       <Button
                         variant="outline"
@@ -905,7 +1010,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                         onClick={() =>
                           updateAdMetrics(ad.id, "loads", (ad.loads || 0) + 1)
                         }
-                        disabled={ad.status !== "Activo"}
+                        disabled={ad.status !== "Activo" || assigningLoad}
                       >
                         <PlusIcon className="h-3 w-3" />
                       </Button>

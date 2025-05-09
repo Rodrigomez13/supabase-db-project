@@ -175,7 +175,7 @@ export default function NewLeadPage() {
           franchise_id: selectedFranchise.id,
           franchise_phone_id: nextPhone.id,
           date: new Date().toISOString().split("T")[0],
-          status: "pending",
+          status: "Pendiente",
         })
         .select();
 

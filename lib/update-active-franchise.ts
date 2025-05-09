@@ -101,3 +101,60 @@ export async function updateActiveFranchise(
     return false
   }
 }
+
+/**
+ * Obtiene la franquicia activa del sistema
+ * @returns Objeto con la información de la franquicia activa o null si no hay ninguna
+ */
+export async function getActiveFranchise() {
+  const supabase = createClientComponentClient()
+  try {
+    console.log("Obteniendo franquicia activa...")
+
+    // Obtener la configuración global del sistema
+    const { data, error } = await supabase
+      .from("system_config")
+      .select("value")
+      .eq("key", "active_franchise")
+      .maybeSingle()
+
+    if (error) {
+      console.error("Error al obtener la franquicia activa:", error)
+      return null
+    }
+
+    if (!data || !data.value) {
+      console.warn("No hay franquicia activa configurada")
+      return null
+    }
+
+    console.log("Franquicia activa encontrada:", data.value)
+
+    // Si el valor es un objeto con id y name, usarlo directamente
+    if (typeof data.value === "object" && data.value.id) {
+      return {
+        id: data.value.id,
+        name: data.value.name,
+      }
+    }
+
+    // Si solo tenemos el ID, obtener los detalles de la franquicia
+    const franchiseId = typeof data.value === "string" ? data.value : data.value.id
+
+    const { data: franchiseData, error: franchiseError } = await supabase
+      .from("franchises")
+      .select("id, name")
+      .eq("id", franchiseId)
+      .single()
+
+    if (franchiseError || !franchiseData) {
+      console.error("Error al obtener detalles de la franquicia:", franchiseError)
+      return null
+    }
+
+    return franchiseData
+  } catch (error) {
+    console.error("Error en getActiveFranchise:", error)
+    return null
+  }
+}

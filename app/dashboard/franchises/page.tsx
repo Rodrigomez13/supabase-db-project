@@ -11,18 +11,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PlusIcon, Pencil, Trash2 } from "lucide-react";
+import { PlusIcon, Pencil, Trash2, Phone, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import {
   type Franchise as BaseFranchise,
   getFranchises,
   deleteFranchise,
 } from "@/lib/queries/franchise-queries";
+import { getFranchisePhonesCount } from "@/lib/franchise-phone-utils";
+import { StatusBadge } from "@/components/status-badge";
+import { useToast } from "@/hooks/use-toast";
 
 export type Franchise = BaseFranchise & {
-  phones?: { is_active: boolean }[]; // Ensure phones property exists
+  phones?: { is_active: boolean }[];
 };
-import { StatusBadge } from "@/components/status-badge";
 
 export type LocalFranchise = {
   id: string;
@@ -30,45 +32,69 @@ export type LocalFranchise = {
   owner?: string;
   created_at: string;
   status?: string;
-  phones?: { is_active: boolean }[]; // Add phones property
-  activePhones?: number; // Add activePhones property
-  totalPhones?: number; // Add totalPhones property
+  activePhones?: number;
+  totalPhones?: number;
 };
 
 export default function FranchisesPage() {
   const [franchises, setFranchises] = useState<LocalFranchise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    async function fetchFranchises() {
-      try {
-        setLoading(true);
-        const data = await getFranchises();
-
-        // Agregar lógica para calcular teléfonos activos y totales
-        const franchisesWithPhones = data.map((franchise: Franchise) => {
-          const activePhones =
-            franchise.phones?.filter((phone) => phone.is_active).length || 0;
-          const totalPhones = franchise.phones?.length || 0;
-          return { ...franchise, activePhones, totalPhones };
-        });
-
-        setFranchises(franchisesWithPhones);
-        setError(null);
-      } catch (err: any) {
-        console.error("Error loading franchises:", err);
-        setError(
-          "No se pudieron cargar las franquicias. Por favor, intenta de nuevo más tarde."
-        );
-        setFranchises([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchFranchises();
   }, []);
+
+  async function fetchFranchises() {
+    try {
+      setLoading(true);
+      const data = await getFranchises();
+
+      // Obtener el conteo de teléfonos para cada franquicia
+      const { data: phonesData, error: phonesError } =
+        await getFranchisePhonesCount();
+
+      if (phonesError) {
+        console.error("Error al obtener conteo de teléfonos:", phonesError);
+        toast({
+          title: "Error",
+          description:
+            "No se pudo obtener el conteo de teléfonos. Se mostrará 0/0.",
+          variant: "destructive",
+        });
+      }
+
+      // Combinar los datos
+      const franchisesWithPhones = data.map((franchise: BaseFranchise) => {
+        const phoneInfo:
+          | {
+              franchise_id: string;
+              active_phones: number;
+              total_phones: number;
+            }
+          | undefined = phonesData?.find(
+          (p: { franchise_id: string }) => p.franchise_id === franchise.id
+        );
+        return {
+          ...franchise,
+          activePhones: phoneInfo?.active_phones || 0,
+          totalPhones: phoneInfo?.total_phones || 0,
+        };
+      });
+
+      setFranchises(franchisesWithPhones);
+      setError(null);
+    } catch (err: any) {
+      console.error("Error loading franchises:", err);
+      setError(
+        "No se pudieron cargar las franquicias. Por favor, intenta de nuevo más tarde."
+      );
+      setFranchises([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleDeleteFranchise(id: string) {
     try {
@@ -80,13 +106,34 @@ export default function FranchisesPage() {
 
       // Actualizamos la lista localmente para evitar otra consulta
       setFranchises(franchises.filter((franchise) => franchise.id !== id));
+
+      toast({
+        title: "Franquicia eliminada",
+        description: "La franquicia ha sido eliminada correctamente",
+      });
     } catch (err: any) {
       console.error("Error deleting franchise:", err);
       setError(
         `Error al eliminar franquicia: ${err.message || "Error desconocido"}`
       );
+
+      toast({
+        title: "Error",
+        description: `Error al eliminar franquicia: ${
+          err.message || "Error desconocido"
+        }`,
+        variant: "destructive",
+      });
     }
   }
+
+  const handleRefresh = () => {
+    fetchFranchises();
+    toast({
+      title: "Actualizando",
+      description: "Actualizando lista de franquicias y conteo de teléfonos",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -94,12 +141,18 @@ export default function FranchisesPage() {
         <h1 className="text-3xl font-bold text-usina-text-primary">
           Franquicias
         </h1>
-        <Link href="/dashboard/franchises/new">
-          <Button className="bg-usina-primary hover:bg-usina-secondary">
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Nueva Franquicia
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh} className="mr-2">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualizar
           </Button>
-        </Link>
+          <Link href="/dashboard/franchises/new">
+            <Button className="bg-usina-primary hover:bg-usina-secondary">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Nueva Franquicia
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {error && (
@@ -135,7 +188,10 @@ export default function FranchisesPage() {
                     Estado
                   </TableHead>
                   <TableHead className="text-usina-text-secondary">
-                    Teléfonos
+                    <div className="flex items-center">
+                      <Phone className="h-4 w-4 mr-1" />
+                      Teléfonos (Activos/Total)
+                    </div>
                   </TableHead>
                   <TableHead className="text-right text-usina-text-secondary">
                     Acciones
@@ -155,10 +211,18 @@ export default function FranchisesPage() {
                       {new Date(franchise.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={franchise.status || "Activo"} />
+                      <StatusBadge status={franchise.status || "active"} />
                     </TableCell>
                     <TableCell className="text-center text-usina-text-primary">
-                      {franchise.activePhones}/{franchise.totalPhones}
+                      <span
+                        className={
+                          franchise.activePhones === 0
+                            ? "text-amber-500 font-medium"
+                            : ""
+                        }
+                      >
+                        {franchise.activePhones}/{franchise.totalPhones}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
@@ -172,12 +236,13 @@ export default function FranchisesPage() {
                           </Button>
                         </Link>
                         <Link
-                          href={`/dashboard/franchises/phones?franchise=${franchise.name}`}
+                          href={`/dashboard/franchises/${franchise.id}/phones`}
                         >
                           <Button
                             variant="outline"
                             className="border-usina-primary/30 text-usina-primary hover:bg-usina-primary/10 px-4"
                           >
+                            <Phone className="h-4 w-4 mr-2" />
                             Ver Teléfonos
                           </Button>
                         </Link>
