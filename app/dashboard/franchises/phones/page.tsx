@@ -710,12 +710,12 @@ export default function FranchisePhonesPage() {
               "activo",
               "inactivo",
               "Activo",
-              "inactive",
+              "Inactivo",
               "1",
               "0",
-              "true",
-              "false",
-            ].includes(row.status.toLowerCase())
+              "TRUE",
+              "FALSE",
+            ].includes(row.status.toUpperCase())
         );
 
         if (invalidRows.length > 0) {
@@ -795,7 +795,7 @@ export default function FranchisePhonesPage() {
     // Convertir los teléfonos a formato CSV
     const csvContent = phones.map((phone) => [
       phone.order_number,
-      phone.is_active ? "activo" : "inactivo",
+      phone.is_active ? "TRUE" : "FALSE",
       phone.phone_number,
       phone.daily_goal || 0,
       phone.notes || "",
@@ -1035,7 +1035,7 @@ export default function FranchisePhonesPage() {
                       <SelectContent>
                         <SelectItem value="">Todos los estados</SelectItem>
                         <SelectItem value="Activo">Activos</SelectItem>
-                        <SelectItem value="inactive">Inactivos</SelectItem>
+                        <SelectItem value="Inactivo">Inactivos</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1132,7 +1132,7 @@ export default function FranchisePhonesPage() {
                                     : "bg-red-100 text-red-800"
                                 }`}
                               >
-                                {phone.is_active ? "Activo" : "Inactivo"}
+                                {phone.is_active ? "TRUE" : "FALSE"}
                               </span>
                             </TableCell>
                             <TableCell>{phone.daily_goal || 0}</TableCell>

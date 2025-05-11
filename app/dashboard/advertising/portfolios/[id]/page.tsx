@@ -218,7 +218,7 @@ export default function EditPortfolioPage({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Activo">Activo</SelectItem>
-                  <SelectItem value="inactive">Inactivo</SelectItem>
+                  <SelectItem value="Inactivo">Inactivo</SelectItem>
                 </SelectContent>
               </Select>
             </div>

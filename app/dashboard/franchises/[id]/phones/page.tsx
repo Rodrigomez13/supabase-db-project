@@ -52,7 +52,7 @@ interface FranchisePhone {
   franchise_id: string;
   phone_number: string;
   order_number: number;
-  is_Activo: boolean;
+  is_active: boolean;
   daily_goal: number;
   notes?: string;
   category?: string;
@@ -67,7 +67,7 @@ export default function FranchisePhonesPage() {
   const [phones, setPhones] = useState<FranchisePhone[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>("");
-  const [filter, setFilter] = useState<"all" | "Activo" | "inActivo">("all");
+  const [filter, setFilter] = useState<"all" | "Activo" | "Inactivo">("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -75,7 +75,7 @@ export default function FranchisePhonesPage() {
   const [formData, setFormData] = useState({
     phone_number: "",
     order_number: 0,
-    is_Activo: true,
+    is_active: true,
     daily_goal: 0,
     notes: "",
     category: "",
@@ -121,8 +121,8 @@ export default function FranchisePhonesPage() {
 
     const matchesFilter =
       filter === "all" ||
-      (filter === "Activo" && phone.is_Activo) ||
-      (filter === "inActivo" && !phone.is_Activo);
+      (filter === "Activo" && phone.is_active) ||
+      (filter === "Inactivo" && !phone.is_active);
 
     return matchesSearch && matchesFilter;
   });
@@ -138,7 +138,7 @@ export default function FranchisePhonesPage() {
   const handleSwitchChange = (checked: boolean) => {
     setFormData({
       ...formData,
-      is_Activo: checked,
+      is_active: checked,
     });
   };
 
@@ -163,7 +163,7 @@ export default function FranchisePhonesPage() {
     setFormData({
       phone_number: "",
       order_number: phones.length + 1,
-      is_Activo: true,
+      is_active: true,
       daily_goal: 0,
       notes: "",
       category: "",
@@ -182,7 +182,7 @@ export default function FranchisePhonesPage() {
     setFormData({
       phone_number: phone.phone_number,
       order_number: phone.order_number,
-      is_Activo: phone.is_Activo,
+      is_active: phone.is_active,
       daily_goal: phone.daily_goal,
       notes: phone.notes || "",
       category: phone.category || "",
@@ -338,11 +338,11 @@ export default function FranchisePhonesPage() {
                 Activos
               </Button>
               <Button
-                variant={filter === "inActivo" ? "default" : "outline"}
+                variant={filter === "Inactivo" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setFilter("inActivo")}
+                onClick={() => setFilter("Inactivo")}
               >
-                InActivos
+                Inactivos
               </Button>
             </div>
           </div>
@@ -389,7 +389,7 @@ export default function FranchisePhonesPage() {
                       </TableCell>
                       <TableCell>{phone.phone_number}</TableCell>
                       <TableCell>
-                        {phone.is_Activo ? (
+                        {phone.is_active ? (
                           <Badge
                             variant="default"
                             className="bg-green-100 text-green-800 hover:bg-green-200"
@@ -409,7 +409,7 @@ export default function FranchisePhonesPage() {
                       </TableCell>
                       <TableCell>
                         {phone.category ? (
-                          <Badge variant="outline" className="bg-blue-50">
+                          <Badge variant="outline" className="bg-green-950">
                             {phone.category}
                           </Badge>
                         ) : (
@@ -510,13 +510,13 @@ export default function FranchisePhonesPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="is_Activo" className="text-right">
+              <Label htmlFor="is_active" className="text-right">
                 Activo
               </Label>
               <div className="col-span-3">
                 <Switch
-                  id="is_Activo"
-                  checked={formData.is_Activo}
+                  id="is_active"
+                  checked={formData.is_active}
                   onCheckedChange={handleSwitchChange}
                 />
               </div>
@@ -651,13 +651,13 @@ export default function FranchisePhonesPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit_is_Activo" className="text-right">
+              <Label htmlFor="edit_is_active" className="text-right">
                 Activo
               </Label>
               <div className="col-span-3">
                 <Switch
-                  id="edit_is_Activo"
-                  checked={formData.is_Activo}
+                  id="edit_is_active"
+                  checked={formData.is_active}
                   onCheckedChange={handleSwitchChange}
                 />
               </div>
@@ -771,7 +771,7 @@ export default function FranchisePhonesPage() {
             <div className="py-4">
               <p className="font-medium">Número: {currentPhone.phone_number}</p>
               <p className="text-muted-foreground text-sm mt-1">
-                {currentPhone.is_Activo ? "Activo" : "Inactivo"}
+                {currentPhone.is_active ? "TRUE" : "FALSE"}
                 {currentPhone.category ? ` • ${currentPhone.category}` : ""}
               </p>
             </div>

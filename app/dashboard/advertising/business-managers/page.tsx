@@ -285,8 +285,8 @@ export default function BusinessManagersPage() {
     // Filtrar por estado
     const matchesStatus =
       activeTab === "all" ||
-      (activeTab === "active" && bm.status === "active") ||
-      (activeTab === "inactive" && bm.status !== "active");
+      (activeTab === "Activo" && bm.status === "Activo") ||
+      (activeTab === "Inactivo" && bm.status !== "Inactivo");
 
     return matchesSearch && matchesStatus;
   });
@@ -391,20 +391,20 @@ export default function BusinessManagersPage() {
                       <TableCell>
                         {(() => {
                           const portfolioNames = Array.isArray(bm.portfolios)
-                          ? bm.portfolios
-                            .map((portfolio) => portfolio.name)
-                            .join(", ")
-                          : "N/A";
+                            ? bm.portfolios
+                                .map((portfolio) => portfolio.name)
+                                .join(", ")
+                            : "N/A";
                           return portfolioNames;
                         })()}
                       </TableCell>
                       <TableCell>
                         <Badge
                           variant={
-                            bm.status === "active" ? "success" : "secondary"
+                            bm.status === "Activo" ? "success" : "secondary"
                           }
                         >
-                          {bm.status === "active" ? "Activo" : "Inactivo"}
+                          {bm.status === "Activo" ? "Activo" : "Inactivo"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
