@@ -28,12 +28,21 @@ export async function getAds(): Promise<Ad[]> {
  */
 export async function getAdById(id: string): Promise<Ad | null> {
   try {
+    console.log(`Obteniendo anuncio con ID: ${id}`)
+
     const ads = await safeQuery<Ad>("ads", {
       where: { id },
-      relationships: "ad_sets (name)",
+      relationships: "ad_sets (name, id, campaign_id, campaigns(name))",
       single: true,
     })
-    return ads[0] || null
+
+    if (ads.length === 0) {
+      console.log(`No se encontró anuncio con ID: ${id}`)
+      return null
+    }
+
+    console.log(`Anuncio encontrado:`, ads[0])
+    return ads[0]
   } catch (error) {
     console.error("Error en getAdById:", error)
     return null
