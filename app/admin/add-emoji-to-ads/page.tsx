@@ -116,7 +116,7 @@ function EmojiAssigner() {
       // Primero verificamos si la columna emoji existe
       let { data, error } = await supabase
         .from("ads")
-        .select("id, name, ad_id, status, emoji")
+        .select("id, name, ad_id, is_active, emoji")
         .order("name");
 
       if (error) {
