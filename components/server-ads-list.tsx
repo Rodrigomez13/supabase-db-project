@@ -269,7 +269,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
               : "00000000-0000-0000-0000-000000000000"
           })`
         )
-        .eq("Activo", true); // Solo anuncios activos
+        .eq("is_active", true); // Solo anuncios activos
 
       if (error) throw error;
       setAvailableAds(data || []);
@@ -283,7 +283,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
       if (apisError) throw apisError;
       setAvailableApis(apisData || []);
     } catch (err) {
-      console.error("Error loading available ads:", err);
+      console.error("Error loading available ads:");
     }
   }
 
