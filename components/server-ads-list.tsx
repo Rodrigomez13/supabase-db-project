@@ -140,7 +140,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
             name,
             ad_id,
             adset_id,
-            status
+            is_active
           ),
           apis (
             name
@@ -218,7 +218,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
             conversion_rate: conversion_rate,
             cost_per_lead: cost_per_lead,
             cost_per_load: cost_per_load,
-            status: item.status || "Activo", // Estado por defecto actualizado
+            status: item.is_active || true, // Estado por defecto actualizado
           };
         })
       );
@@ -237,53 +237,45 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
 
   async function loadAvailableAds() {
     try {
-      // Obtener anuncios que no están ya en este servidor
-      const { data: serverAdsData } = await supabase
-        .from("server_ads")
-        .select("ad_id")
-        .eq("server_id", serverId);
+      // Debug serverId
+      console.log('serverId:', serverId, 'Type:', typeof serverId, 'JSON:', JSON.stringify(serverId));
 
-      const existingAdIds = serverAdsData?.map((item) => item.ad_id) || [];
+      // Extract UUID from serverId
+      let serverIdValue;
+      if (typeof serverId === 'string') {
+        serverIdValue = serverId;
+      }
 
-      // Consultar anuncios disponibles
-      const { data, error } = await supabase
-        .from("ads")
-        .select(
-          `
-          id, 
-          name,
-          ad_id,
-          status,
-          ad_sets (
-            name,
-            id
-          )
-        `
-        )
-        .not(
-          "id",
-          "in",
-          `(${
-            existingAdIds.length > 0
-              ? existingAdIds.join(",")
-              : "00000000-0000-0000-0000-000000000000"
-          })`
-        )
-        .eq("is_active", true); // Solo anuncios activos
+      // Validate serverIdValue
+      if (!serverIdValue) {
+        throw new Error(`serverId is invalid or missing: ${JSON.stringify(serverId)}`);
+      }
 
-      if (error) throw error;
-      setAvailableAds(data || []);
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(serverIdValue)  ) {
+        throw new Error(`Invalid UUID format for serverId: ${serverIdValue}`);
+      }
 
-      // Cargar APIs disponibles
+      console.log('Using serverIdValue:', serverIdValue);
+
+      // Call the get_available_ads function
+      const { data: adsData, error: adsError } = await supabase
+        .rpc('get_available_ads', { p_server_id: serverIdValue });
+
+      if (adsError) throw adsError;
+      console.log('Ads data:', adsData);
+      setAvailableAds(adsData || []);
+
+      // Fetch APIs
       const { data: apisData, error: apisError } = await supabase
-        .from("apis")
-        .select("id, name")
-        .eq("is_active", true);
+        .from('apis')
+        .select('id, name')
+        .eq('is_active', true);
 
       if (apisError) throw apisError;
       setAvailableApis(apisData || []);
     } catch (err) {
-      console.error("Error loading available ads:");
+      console.error('Error loading available ads:', err);
     }
   }
 
@@ -677,9 +669,9 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                     <SelectContent>
                       {availableAds.map((ad) => (
                         <SelectItem key={ad.id} value={ad.id}>
-                          {ad.name} - {ad.ad_sets?.name || "Sin conjunto"}
+                          {ad.name} - {ad.ad_set_name}
                         </SelectItem>
-                      ))}
+                      ))}                       
                     </SelectContent>
                   </Select>
                 </div>
@@ -862,7 +854,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
-                        disabled={ad.status !== "Activo"}
+                        disabled={ad.is_active !== true}
                       />
                     </div>
                   </TableCell>
@@ -943,7 +935,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                             Math.max(0, (ad.leads || 0) - 1)
                           )
                         }
-                        disabled={ad.status !== "Activo"}
+                        disabled={ad.is_active !== true}
                       >
                         <MinusIcon className="h-3 w-3" />
                       </Button>
@@ -958,7 +950,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
-                        disabled={ad.status !== "Activo"}
+                        disabled={ad.is_active !== true}
                       />
                       <Button
                         variant="outline"
@@ -967,7 +959,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                         onClick={() =>
                           updateAdMetrics(ad.id, "leads", (ad.leads || 0) + 1)
                         }
-                        disabled={ad.status !== "Activo"}
+                        disabled={ad.is_active !== true}
                       >
                         <PlusIcon className="h-3 w-3" />
                       </Button>
@@ -986,7 +978,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                             Math.max(0, (ad.loads || 0) - 1)
                           )
                         }
-                        disabled={ad.status !== "Activo" || assigningLoad}
+                        disabled={ad.is_active !== true || assigningLoad}
                       >
                         <MinusIcon className="h-3 w-3" />
                       </Button>
@@ -1001,7 +993,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                           )
                         }
                         className="w-20 h-8 text-center"
-                        disabled={ad.status !== "Activo" || assigningLoad}
+                        disabled={ad.is_active !== true || assigningLoad}
                       />
                       <Button
                         variant="outline"
@@ -1010,7 +1002,7 @@ export function ServerAdsList({ serverId }: ServerAdsListProps) {
                         onClick={() =>
                           updateAdMetrics(ad.id, "loads", (ad.loads || 0) + 1)
                         }
-                        disabled={ad.status !== "Activo" || assigningLoad}
+                        disabled={ad.is_active !== true || assigningLoad}
                       >
                         <PlusIcon className="h-3 w-3" />
                       </Button>
