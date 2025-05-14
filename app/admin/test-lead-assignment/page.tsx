@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -247,7 +247,4 @@ export default function TestLeadAssignmentPage() {
       </div>
     </div>
   );
-}
-function useEffect(arg0: () => void, arg1: never[]) {
-  throw new Error("Function not implemented.");
 }
