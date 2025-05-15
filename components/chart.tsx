@@ -2,6 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+// Registrar plugins de Chart.js (ChartJS.register es seguro de llamar múltiples veces)
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
 interface ChartProps {
   type: "line" | "bar" | "pie" | "doughnut";
   data: any;

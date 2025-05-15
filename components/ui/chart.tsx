@@ -115,7 +115,7 @@ const ChartTooltipContent = React.forwardRef<
 >(
   (
     {
-      Activo,
+      active,
       payload,
       className,
       indicator = "dot",
@@ -169,7 +169,7 @@ const ChartTooltipContent = React.forwardRef<
       labelKey,
     ]);
 
-    if (!Activo || !payload?.length) {
+    if (!active || !payload?.length) {
       return null;
     }
 
