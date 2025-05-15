@@ -35,6 +35,7 @@ import { RecentLeads } from "@/components/recent-leads";
 import { RecentConversions } from "@/components/recent-conversions";
 import { FranchiseSelector } from "@/components/franchise-selector";
 
+
 interface DashboardMetrics {
   leads: number;
   conversions: number;

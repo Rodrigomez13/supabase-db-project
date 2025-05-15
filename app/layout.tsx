@@ -3,7 +3,6 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider } from "@/components/theme-provider";
-import { NavFranchiseIndicator } from "@/components/nav-franchise-indicator";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {

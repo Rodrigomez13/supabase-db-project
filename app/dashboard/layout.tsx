@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-
+import "../globals.css";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
